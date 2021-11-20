@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use sdl2::rect::Rect;
 use sdl2::{EventPump, VideoSubsystem};
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -11,6 +12,15 @@ use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
 use crate::entity::Entity;
 use crate::world::World;
+
+pub struct EntityGraphicsState {
+    pub texture_id: usize
+}
+
+pub struct Camera {
+    x: i32,
+    y: i32
+}
 
 // Manages loading and keeping track of textures
 pub struct TextureManager<'a> {
@@ -47,21 +57,29 @@ impl<'a> TextureManager<'a> {
 // The actual rendering system, uses GraphicsState
 pub struct GraphicsSystem<'a> {
     texture_manager: TextureManager<'a>,
-    canvas: &'a mut Canvas<Window>
+    canvas: &'a mut Canvas<Window>,
+    camera: Camera
 }
 
 impl<'a> GraphicsSystem<'a> {
     pub fn new(texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
         GraphicsSystem {
             texture_manager,
-            canvas
+            canvas,
+            camera: Camera {x: -50, y: -50}
         }
     }
 
     // Draw an entity based on its position and texture
     pub fn draw_entity(&mut self, entity: &Entity) {
-        let texture = self.texture_manager.get_texture(entity.texture_id().unwrap()).unwrap();
-        self.canvas.copy(texture, None, None).unwrap();
+        let tex_id = entity.graphics_state.as_ref().unwrap().texture_id;
+        let texture = self.texture_manager.get_texture(tex_id).unwrap();
+    
+        let mut entity_rect = entity.rect();
+        entity_rect.x -= self.camera.x;
+        entity_rect.y -= self.camera.y;
+    
+        self.canvas.copy(texture, None, entity_rect).unwrap();
     }
 
     // Run the system
