@@ -33,14 +33,12 @@ impl InputSystem {
         if let Some(player) = world.get_player_mut() {
             if let Some(physics_state) = player.physics_mut() {
 
-                let max_accel = 5.0;
-
                 let north = self.key_state.contains(&Keycode::W);
                 let west = self.key_state.contains(&Keycode::A);
                 let south = self.key_state.contains(&Keycode::S);
                 let east = self.key_state.contains(&Keycode::D);
 
-                let mut mag = 5.0;
+                let mut mag = 200.0;
 
                 let dir = match (north, east, south, west) {
                     (true, false, false, false) | (true, true, false, true) => -FRAC_PI_2,   // North
