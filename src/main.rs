@@ -9,6 +9,8 @@ fn main() {
     let video_subsystem = sdl2_context.video().unwrap();
     let audio_subsystem = sdl2_context.audio().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG).unwrap();
+    let joystick_subsystem = sdl2_context.joystick().unwrap();
+    let controller_subsystem = sdl2_context.game_controller().unwrap();
 
     // Create graphics objects such as window, canvas, and texture manager
     let window = video_subsystem.window("title", 800, 600)
@@ -49,7 +51,10 @@ fn main() {
 
 
     // Create Game Systems
-    let mut input_system = InputSystem::new();
+    let mut input_system = InputSystem::new(
+        controller_subsystem,
+        joystick_subsystem
+    );
     let mut physics_system = PhysicsSystem::new();
     let mut effects_system = EffectsSystem::new();
     let mut animation_system = AnimationSystem::new();
