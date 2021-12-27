@@ -70,12 +70,17 @@ impl<'a> GraphicsSystem<'a> {
         }
     }
 
+    // Make the Camera follow the entity
+    fn follow(&mut self, entity: &Entity) {
+        // If player is outside a bounding box which is 70% of the screen
+    }
+
     // Draw an entity based on its position and texture
     pub fn draw_entity(&mut self, entity: &Entity) {
-        let tex_id = entity.graphics_state.as_ref().unwrap().texture_id;
+        let tex_id = entity.graphics().unwrap().texture_id;
         let texture = self.texture_manager.get_texture(tex_id).unwrap();
     
-        let mut entity_rect = entity.rect();
+        let mut entity_rect = entity.geometry().unwrap().rect();
         entity_rect.x -= self.camera.x;
         entity_rect.y -= self.camera.y;
     
@@ -85,6 +90,10 @@ impl<'a> GraphicsSystem<'a> {
     // Run the system
     pub fn run(&mut self, world: &mut World) {
         self.canvas.clear();
+
+        if let Some(player) = world.get_player() {
+            self.follow(player);
+        }
 
         world.drawables().for_each(|e| {
             self.draw_entity(e);

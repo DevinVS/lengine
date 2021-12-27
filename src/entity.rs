@@ -1,5 +1,6 @@
-use sdl2::rect::Rect;
+use std::collections::HashMap;
 
+use crate::geometry::EntityGeometryState;
 use crate::graphics::EntityGraphicsState;
 use crate::physics::EntityPhysicsState;
 
@@ -9,107 +10,107 @@ use crate::physics::EntityPhysicsState;
 // Which allow different engine subsystems to query for appropriate entities
 // And store state inside of them
 pub struct Entity {
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
-    pub graphics_state: Option<EntityGraphicsState>,
-    pub physics_state: Option<EntityPhysicsState>
+    graphics_state: Option<EntityGraphicsState>,
+    physics_state: Option<EntityPhysicsState>,
+    geometry_state: Option<EntityGeometryState>,
 }
 
 impl Entity {
+
     pub fn new(
-        x: i32,
-        y: i32,
-        width: u32,
-        height: u32,
         graphics_state: Option<EntityGraphicsState>,
-        physics_state: Option<EntityPhysicsState>
+        physics_state: Option<EntityPhysicsState>,
+        geometry_state: Option<EntityGeometryState>
     ) -> Entity {
+
         Entity {
-            x,
-            y,
-            width,
-            height,
             graphics_state,
-            physics_state
+            physics_state,
+            geometry_state
         }
+
     }
 
-    pub fn builder() -> EntityBuilder {
-        EntityBuilder::new()
-    }
+    pub fn has_geometry(&self) -> bool { self.geometry_state.is_some() }
+    pub fn has_physics(&self) -> bool { self.physics_state.is_some() }
+    pub fn has_graphics(&self) -> bool { self.graphics_state.is_some() }
 
-    // Return rect representing position inside the game world
-    pub fn rect(&self) -> Rect {
-        Rect::new(self.x, self.y, self.width, self.height)
-    }
+    pub fn geometry(&self) -> Option<&EntityGeometryState> { self.geometry_state.as_ref() }
+    pub fn geometry_mut(&mut self) -> Option<&mut EntityGeometryState> { self.geometry_state.as_mut() }
+
+    pub fn physics(&self) -> Option<&EntityPhysicsState> { self.physics_state.as_ref() }
+    pub fn physics_mut(&mut self) -> Option<&mut EntityPhysicsState> { self.physics_state.as_mut() }
+
+    pub fn graphics(&self) -> Option<&EntityGraphicsState> { self.graphics_state.as_ref() }
+    pub fn graphics_mut(&self) -> Option<&EntityGraphicsState> { self.graphics_state.as_ref() }
 }
 
-// Helper struct to build an entity
-pub struct EntityBuilder {
-    x: Option<i32>,
-    y: Option<i32>,
-    width: Option<u32>,
-    height: Option<u32>,
-    graphics_state: Option<EntityGraphicsState>,
-    physics_state: Option<EntityPhysicsState>
+// Numeric constants that we use as flags to 
+// Query entities inside of world
+pub mod QueryFlag {
+    pub const GEOMETRY: u8      = 0b00001;   // Entity has geometric properties
+    pub const PHYSICS: u8       = 0b00011;   // Entity has physical and geometric properties
+    pub const GRAPHICS: u8      = 0b00101;   // Entity has rendering properties and geometric properties
+    pub const ANIMATIONS: u8    = 0b01101;   // Entity has animation properties and graphics properties
+    pub const EFFECTS: u8       = 0b10001;   // Entity has effect properties and geometric properties
 }
 
-impl EntityBuilder {
-    pub fn new() -> EntityBuilder {
-        EntityBuilder {
-            x: None,
-            y: None,
-            width: None,
-            height: None,
-            graphics_state: None,
-            physics_state: None
+// Type to query objects out of the world
+pub type Query = u8;
+
+// Object for managing entities, presents query interface
+pub struct EntityManager {
+    // Next id for an entity
+    next_entity_id: usize,
+
+    // A hashmapof all game entities. These can be
+    // drawable, have physical properties, or be
+    // interactable in some way
+    entities: HashMap<usize, Entity>,
+}
+
+impl EntityManager {
+    // Create a new entity manager containing no entities
+    pub fn new() -> EntityManager {
+        EntityManager {
+            next_entity_id: 0,
+            entities: HashMap::new()
         }
     }
 
-    pub fn x(mut self, x: i32) -> EntityBuilder {
-        self.x = Some(x);
-        self
+    // Add an entity to the entity manager
+    pub fn add_entity(&mut self, entity: Entity) -> usize {
+        let id = self.next_entity_id;
+        self.next_entity_id += 1;
+        self.entities.insert(id, entity);
+        id
     }
 
-    pub fn y(mut self, y: i32) -> EntityBuilder {
-        self.y = Some(y);
-        self
+    // Get an entity by its id
+    pub fn get_entity(&self, id: usize) -> Option<&Entity> {
+        self.entities.get(&id)
     }
 
-    pub fn width(mut self, width: u32) -> EntityBuilder {
-        self.width = Some(width);
-        self
+    // Get a mutable entity by its id
+    pub fn get_entity_mut(&mut self, id: usize) -> Option<&mut Entity> {
+        self.entities.get_mut(&id)
     }
 
-    pub fn height(mut self, height: u32) -> EntityBuilder {
-        self.height = Some(height);
-        self
+    // Query the entity manager for an iterator of entities conforming
+    // to the query flags
+    pub fn query(&self, query: Query) -> impl Iterator<Item = &Entity> {
+        self.entities.values().filter(move |e| {
+            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
+            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
+        })
     }
 
-    pub fn graphics_state(mut self, graphics_state: EntityGraphicsState) -> EntityBuilder {
-        self.graphics_state = Some(graphics_state);
-        self
-    }
-
-    pub fn physics_state(mut self, physics_state: EntityPhysicsState) -> EntityBuilder {
-        self.physics_state = Some(physics_state);
-        self
-    }
-
-    pub fn build(self) -> Result<Entity, String> {
-        if self.x.is_none() || self.y.is_none() || self.width.is_none() || self.height.is_none() {
-            return Err("Missing Required Fields for Entity".into());
-        }
-
-        Ok(Entity {
-            x: self.x.unwrap(),
-            y: self.y.unwrap(),
-            width: self.width.unwrap(),
-            height: self.height.unwrap(),
-            graphics_state: self.graphics_state,
-            physics_state: self.physics_state
+    // Query the entity manager for a mutable iterator of entities conforming
+    // to the query flags
+    pub fn query_mut(&mut self, query: Query) -> impl Iterator<Item = &mut Entity> {
+        self.entities.values_mut().filter(move |e| {
+            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
+            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
         })
     }
 }

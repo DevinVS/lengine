@@ -1,75 +1,7 @@
-use std::collections::{HashMap, HashSet};
-
-use crate::{effect::Effect, entity::Entity, map::WorldMap};
-
-// Numeric constants that we use as flags to 
-// Query entities inside of world
-mod QueryFlag {
-    pub const PHYSICS: u8       = 0b0001;   // Entity has physical properties
-    pub const GRAPHICS: u8      = 0b0010;   // Entity has rendering properties
-    pub const ANIMATIONS: u8    = 0b0100;   // Entity has animation properties
-    pub const EFFECTS: u8       = 0b1000;   // Entity has effect properties
-}
-
-// Type to query objects out of the world
-type Query = u8;
-
-// Object for managing entities, presents query interface
-struct EntityManager {
-    // Next id for an entity
-    next_entity_id: usize,
-
-    // A hashmapof all game entities. These can be
-    // drawable, have physical properties, or be
-    // interactable in some way
-    entities: HashMap<usize, Entity>,
-}
-
-impl EntityManager {
-    // Create a new entity manager containing no entities
-    fn new() -> EntityManager {
-        EntityManager {
-            next_entity_id: 0,
-            entities: HashMap::new()
-        }
-    }
-
-    // Add an entity to the entity manager
-    fn add_entity(&mut self, entity: Entity) -> usize {
-        let id = self.next_entity_id;
-        self.next_entity_id += 1;
-        self.entities.insert(id, entity);
-        id
-    }
-
-    // Get an entity by its id
-    fn get_entity(&self, id: usize) -> Option<&Entity> {
-        self.entities.get(&id)
-    }
-
-    // Get a mutable entity by its id
-    fn get_entity_mut(&mut self, id: usize) -> Option<&mut Entity> {
-        self.entities.get_mut(&id)
-    }
-
-    // Query the entity manager for an iterator of entities conforming
-    // to the query flags
-    fn query(&self, query: Query) -> impl Iterator<Item = &Entity> {
-        self.entities.values().filter(move |e| {
-            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
-            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
-        })
-    }
-
-    // Query the entity manager for a mutable iterator of entities conforming
-    // to the query flags
-    fn query_mut(&mut self, query: Query) -> impl Iterator<Item = &mut Entity> {
-        self.entities.values_mut().filter(move |e| {
-            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
-            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
-        })
-    }
-}
+use std::collections::HashSet;
+use crate::effect::Effect;
+use crate::entity::{Entity, EntityManager, Query, QueryFlag};
+use crate::map::WorldMap;
 
 // Struct containing all game data and current state
 pub struct World {

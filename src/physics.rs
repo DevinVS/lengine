@@ -1,23 +1,19 @@
-use crate::{entity::Entity, vector::Vector, world::World};
-use std::{f32::consts::PI, time::Instant};
+use sdl2::rect::Rect;
+use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::PI;
 
-// Constants, all in metric
-const PIX_PER_M: f32 = 10.0;  // Pixels per Meter
-const G: f32 = 9.8; // gravity
-const MU_K: f32 = 0.3;  // Coefficient of kinetic friction
-const MU_S: f32 = 0.5;  // Coefficient of static friction
+use crate::{entity::Entity, vector::Vector, world::World};
+use std::time::Instant;
 
 pub struct EntityPhysicsState {
-    pub mass: f32,      // Mass of the current object
-    pub forces: Vector, // Sum of forces being applied on this object
+    pub depth: u32,
     pub velocity: Vector    // Velocity on an object, do not set directly
 }
 
 impl EntityPhysicsState {
-    pub fn new(mass: f32) -> EntityPhysicsState {
+    pub fn new(depth: u32) -> EntityPhysicsState {
         EntityPhysicsState {
-            mass,
-            forces: Vector::zero(),
+            depth,
             velocity: Vector::zero()
         }
     }
@@ -38,88 +34,90 @@ impl PhysicsSystem {
         }
     }
 
-    fn apply_friction(entity: &mut Entity) {
-        let physics_state = entity.physics_state.as_mut().unwrap();
-
-        let friction = if physics_state.velocity.mag < 0.1 {
-            Vector::zero()
-        } else if physics_state.velocity.mag.abs() < 0.1 {
-            // Static Friction
-            Vector::new(
-                physics_state.velocity.dir - PI,
-                G*physics_state.mass*MU_S
-            )
-        } else {
-            // Kinetic Friction
-            Vector::new(
-                physics_state.velocity.dir - PI,
-                G*physics_state.mass*MU_K
-            )
-        };
-
-        physics_state.forces += friction;
-    }
-
-    fn calculate_velocity(&self, entity: &mut Entity) {
-        let physics_state = entity.physics_state.as_mut().unwrap();
-        let a = physics_state.forces / physics_state.mass;
-        let t = self.last_tick.elapsed().as_secs_f32();
-
-        physics_state.velocity = physics_state.velocity + a*t;
-    }
-
-    fn calculate_position(&self, entity: &mut Entity) {
-        let physics_state = entity.physics_state.as_ref().unwrap();
-        let t = self.last_tick.elapsed().as_secs_f32();
-        
-        entity.x += (physics_state.velocity.x()) as i32;
-        entity.y += (physics_state.velocity.y()) as i32;
-    }
-
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
         let mut entities: Vec<&mut Entity> = world.physical_mut().collect();
 
         for i in 0..entities.len() {
-            PhysicsSystem::apply_friction(entities[i]);
-            self.calculate_velocity(entities[i]);
-            self.calculate_position(entities[i]);
+            // Apply final velocities
+            let t = self.last_tick.elapsed().as_secs_f32();
+            let mut delta_vec = entities.get_mut(i).unwrap().physics().unwrap().velocity;
+
+
+            let rect = entities.get_mut(i).unwrap().geometry().unwrap().rect();
+            let mut new_rect = rect.clone();
+
+            new_rect.x += delta_vec.x() as i32;
+            new_rect.y += delta_vec.y() as i32;
+
+            let new_left = new_rect.x();
+            let new_right = new_rect.x() + new_rect.width() as i32;
+
+            let new_top = new_rect.y();
+            let new_bottom = new_rect.y() + new_rect.height() as i32;
+
+            let rect_left = rect.x();
+            let rect_right = rect.x() + rect.width() as i32;
+
+            let rect_top = rect.y();
+            let rect_bottom = rect.y() + rect.height() as i32;
 
             // Check and handle collisions
             for j in 0..entities.len() {
                 if i==j {continue;}
+                let other_rect = entities[j].geometry().unwrap().rect();
 
-                if entities[i].rect().has_intersection(entities[j].rect()) {
-                    // Undo velocity
-                    let vel1 = entities[i].physics_state.as_ref().unwrap().velocity;
-                    let vel2 = entities[j].physics_state.as_ref().unwrap().velocity;
+                if new_rect.has_intersection(other_rect) {
+                    println!("crash");
+                    let other_rect_left = other_rect.x();
+                    let other_rect_right = other_rect.x() + other_rect.width() as i32;
 
-                    entities[i].x -= vel1.x() as i32;
-                    entities[i].y -= vel1.y() as i32;
-                    entities[j].x -= vel2.x() as i32;
-                    entities[j].y -= vel2.y() as i32;
+                    let other_rect_top = other_rect.y();
+                    let other_rect_bottom = other_rect.y() + other_rect.height() as i32;
 
-                    // Apply Conservation of momentum
-                    let vel = {
-                        let physics_1 = entities[i].physics_state.as_ref().unwrap();
-                        let physics_2 = entities[j].physics_state.as_ref().unwrap();
+                    let collide_left = rect_right < other_rect_left && new_right > other_rect_left;
+                    let collide_right = rect_left > other_rect_right && new_left < other_rect_right;
+                    let collide_top = rect_bottom < other_rect_top && new_bottom > other_rect_top;
+                    let collide_bottom = rect_top > other_rect_bottom && new_top < other_rect_bottom;
 
-                        let total_mass = physics_1.mass + physics_2.mass;
-                        let total_momentum = physics_1.velocity*physics_1.mass + physics_2.velocity*physics_2.mass;
-                        total_momentum / total_mass
-                    };
-                    entities[i].physics_state.as_mut().unwrap().velocity = vel;
-                    entities[j].physics_state.as_mut().unwrap().velocity = vel;
+                    if (collide_left || collide_right) && (collide_top || collide_bottom) {
+                        delta_vec.mag = 0.0
+                    }
 
-                    // redo velocity calculation
-                    entities[i].x += vel.x() as i32;
-                    entities[i].y += vel.y() as i32;
-                    entities[j].x += vel.x() as i32;
-                    entities[j].y += vel.y() as i32;
+                    if collide_left {
+                        let y = delta_vec.y();
+                        delta_vec.dir = y.signum() * FRAC_PI_2;
+                        delta_vec.mag = y.abs();
+
+                        entities.get_mut(i).unwrap().geometry_mut().unwrap().x = other_rect_left - rect.width() as i32 - 1;
+                    }
+
+                    if collide_right {
+                        let y = delta_vec.y();
+                        delta_vec.dir = y.signum() * FRAC_PI_2;
+                        delta_vec.mag = y.abs();
+
+                        entities.get_mut(i).unwrap().geometry_mut().unwrap().x = other_rect_right + 1;
+                    }
+
+                    if collide_top {
+                        let x = delta_vec.x();
+                        delta_vec.dir = (1.0-x.signum()) * PI;
+                        delta_vec.mag = x.abs();
+
+                        entities.get_mut(i).unwrap().geometry_mut().unwrap().y = other_rect_top - rect.height() as i32 - 1;
+                    } else if collide_bottom {
+                        let x = delta_vec.x();
+                        delta_vec.dir = (1.0-x.signum()) * PI;
+                        delta_vec.mag = x.abs();
+
+                        entities.get_mut(i).unwrap().geometry_mut().unwrap().y = other_rect_bottom + 1;
+                    }
                 }
-            }
 
-            entities[i].physics_state.as_mut().unwrap().forces = Vector::zero();
+                entities.get_mut(i).unwrap().geometry_mut().unwrap().x += delta_vec.x() as i32;
+                entities.get_mut(i).unwrap().geometry_mut().unwrap().y += delta_vec.y() as i32;
+            }
         }
 
         self.last_tick = Instant::now();

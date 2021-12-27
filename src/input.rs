@@ -3,42 +3,35 @@ use sdl2::{EventPump, event::Event, keyboard::Keycode};
 use crate::{vector::Vector, world::World};
 
 
-pub struct InputSystem<'a> {
-    event_pump: &'a mut EventPump,
+pub struct InputSystem {
     key_state: HashSet<Keycode>,
 }
 
-impl<'a> InputSystem<'a> {
-    pub fn new(event_pump: &'a mut EventPump) -> InputSystem {
+impl InputSystem {
+    pub fn new() -> InputSystem {
         InputSystem {
-            event_pump,
             key_state: HashSet::new()
         }
     }
 
-    pub fn run(&mut self, world: &mut World) {
-        // Log all events into the input state
-        for event in self.event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    exit(0);
-                },
-                Event::KeyDown{ keycode: Some(k), .. } => {
-                    self.key_state.insert(k);
-                }
-                Event::KeyUp { keycode: Some(k), ..} => {
-                    self.key_state.remove(&k);
-                }
-                _ => {}
+    pub fn handle_event(&mut self, event: Event) {
+        match event {
+            Event::KeyDown{ keycode: Some(k), .. } => {
+                self.key_state.insert(k);
             }
+            Event::KeyUp { keycode: Some(k), ..} => {
+                self.key_state.remove(&k);
+            }
+            _ => {}
         }
+    }
 
+    pub fn run(&mut self, world: &mut World) {
         // Act based up on current key state
 
         // Player movement
         if let Some(player) = world.get_player_mut() {
-            if let Some(physics_state) = player.physics_state.as_mut() {
+            if let Some(physics_state) = player.physics_mut() {
 
                 let max_accel = 5.0;
 
@@ -67,7 +60,7 @@ impl<'a> InputSystem<'a> {
                 // Since people dont walk by sliding their feet against the floor,
                 // It doesn't make sense to move a person by applying a force to them.
                 // Instead that person has a maximum velocity they can walk at
-                
+
                 physics_state.velocity = Vector::new(dir, mag);
             }
         }
