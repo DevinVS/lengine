@@ -1,18 +1,16 @@
-use sdl2::rect::Rect;
 use std::f32::consts::FRAC_PI_2;
-use std::f32::consts::PI;
 
 use crate::{entity::Entity, vector::Vector, world::World};
 use std::time::Instant;
 
-pub struct EntityPhysicsState {
+pub struct PhysicsComponent {
     pub depth: u32,
     pub velocity: Vector    // Velocity on an object, do not set directly
 }
 
-impl EntityPhysicsState {
-    pub fn new(depth: u32) -> EntityPhysicsState {
-        EntityPhysicsState {
+impl PhysicsComponent {
+    pub fn new(depth: u32) -> PhysicsComponent {
+        PhysicsComponent {
             depth,
             velocity: Vector::zero()
         }
@@ -43,13 +41,18 @@ impl PhysicsSystem {
             let t = self.last_tick.elapsed().as_secs_f32();
             let mut delta_vec = entities.get_mut(i).unwrap().physics().unwrap().velocity * t;
 
-            let rect = entities.get_mut(i).unwrap().geometry().unwrap().rect();
+            let rect = entities.get_mut(i).unwrap().geometry().unwrap().rect().clone();
 
-            let mut after_x = rect.clone();
-            let mut after_y = rect.clone();
+            let depth = entities.get(i).unwrap().physics().unwrap().depth;
+            let mut footprint = rect.clone();
+            footprint.y += footprint.h as f32 - depth as f32;
+            footprint.h = depth;
 
-            after_x.x += delta_vec.x() as i32;
-            after_y.y += delta_vec.y() as i32;
+            let mut after_x = footprint.clone();
+            let mut after_y = footprint.clone();
+
+            after_x.x += delta_vec.x();
+            after_y.y += delta_vec.y();
 
             // Check and handle collisions
             for j in 0..entities.len() {
@@ -57,9 +60,14 @@ impl PhysicsSystem {
                 if i==j {continue;}
 
                 let other_rect = entities[j].geometry().unwrap().rect();
+                let other_depth = entities[j].physics().unwrap().depth;
 
-                let x_collision = after_x.has_intersection(other_rect);
-                let y_collision = after_y.has_intersection(other_rect);
+                let mut other_footprint = other_rect.clone();
+                other_footprint.y += other_footprint.h as f32 - other_depth as f32;
+                other_footprint.h = other_depth;
+
+                let x_collision = after_x.has_intersection(other_footprint);
+                let y_collision = after_y.has_intersection(other_footprint);
 
                 if x_collision && y_collision {
                     delta_vec.mag = 0.0;
@@ -70,10 +78,14 @@ impl PhysicsSystem {
                     delta_vec.mag *= delta_vec.dir.cos();
                     delta_vec.dir = 0.0;
                 }
-
-                entities.get_mut(i).unwrap().geometry_mut().unwrap().x += delta_vec.x() as i32;
-                entities.get_mut(i).unwrap().geometry_mut().unwrap().y += delta_vec.y() as i32;
             }
+
+            entities.get_mut(i)
+                .unwrap()
+                .geometry_mut()
+                .unwrap()
+                .rect_mut()
+                .after_vector(delta_vec);
         }
 
         self.last_tick = Instant::now();

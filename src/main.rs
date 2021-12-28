@@ -1,6 +1,6 @@
 use std::{process::exit, time::Duration};
 
-use game::{animation::AnimationSystem, effect::EffectsSystem, entity::{Entity}, geometry::EntityGeometryState, graphics::{EntityGraphicsState, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{EntityPhysicsState, PhysicsSystem}, vector::Vector, world::World};
+use game::{animation::AnimationSystem, effect::EffectsSystem, entity::{Entity}, geometry::GeometryComponent, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, vector::Vector, world::World};
 use sdl2::{event::Event, image::InitFlag, keyboard::Keycode};
 
 fn main() {
@@ -32,9 +32,9 @@ fn main() {
     // Example loading
     let player_tex_id = texture_manager.load_texture("./assets/ginny.png");
     let player = Entity::new(
-        Some(EntityGraphicsState{texture_id: player_tex_id}),
-        Some(EntityPhysicsState::new(20)),
-        Some(EntityGeometryState::new(0, 0, 60, 60))
+        Some(GraphicsComponent{texture_id: player_tex_id, flipped: false}),
+        Some(PhysicsComponent::new(5)),
+        Some(GeometryComponent::new(0.0, 0.0, 16, 16))
     );
 
     let player_id = world.add_entity(player);
@@ -42,12 +42,12 @@ fn main() {
 
     let box_tex_id = texture_manager.load_texture("./assets/box.png");
     let box_e = Entity::new(
-        Some(EntityGraphicsState{texture_id: box_tex_id}),
-        Some(EntityPhysicsState::new(20)),
-        Some(EntityGeometryState::new(300, 300, 100, 100))
+        Some(GraphicsComponent{texture_id: box_tex_id, flipped: false}),
+        Some(PhysicsComponent::new(10)),
+        Some(GeometryComponent::new(100.0, 100.0, 32, 32))
     );
 
-    world.add_entity(box_e);
+    // world.add_entity(box_e);
 
 
     // Create Game Systems

@@ -13,13 +13,15 @@ use sdl2::render::TextureCreator;
 use crate::entity::Entity;
 use crate::world::World;
 
-pub struct EntityGraphicsState {
-    pub texture_id: usize
+pub struct GraphicsComponent {
+    pub texture_id: usize,
+    pub flipped: bool
 }
 
 pub struct Camera {
     x: i32,
-    y: i32
+    y: i32,
+    zoom: u32   // Pixels per in game units
 }
 
 // Manages loading and keeping track of textures
@@ -66,25 +68,30 @@ impl<'a> GraphicsSystem<'a> {
         GraphicsSystem {
             texture_manager,
             canvas,
-            camera: Camera {x: -50, y: -50}
+            camera: Camera {x: -50, y: -50, zoom: 5}
         }
     }
 
     // Make the Camera follow the entity
     fn follow(&mut self, entity: &Entity) {
-        // If player is outside a bounding box which is 70% of the screen
     }
 
     // Draw an entity based on its position and texture
     pub fn draw_entity(&mut self, entity: &Entity) {
         let tex_id = entity.graphics().unwrap().texture_id;
+        let flipped = entity.graphics().unwrap().flipped;
         let texture = self.texture_manager.get_texture(tex_id).unwrap();
-    
-        let mut entity_rect = entity.geometry().unwrap().rect();
-        entity_rect.x -= self.camera.x;
-        entity_rect.y -= self.camera.y;
-    
-        self.canvas.copy(texture, None, entity_rect).unwrap();
+
+        let mut entity_rect = entity.geometry().unwrap().rect().clone();
+        entity_rect.x -= self.camera.x as f32;
+        entity_rect.y -= self.camera.y as f32;
+
+        entity_rect.x *= self.camera.zoom as f32;
+        entity_rect.y *= self.camera.zoom as f32;
+        entity_rect.w *= self.camera.zoom;
+        entity_rect.h *= self.camera.zoom;
+
+        self.canvas.copy_ex(texture, None, entity_rect.sdl2(), 0.0, None, flipped, false);
     }
 
     // Run the system
@@ -95,7 +102,14 @@ impl<'a> GraphicsSystem<'a> {
             self.follow(player);
         }
 
-        world.drawables().for_each(|e| {
+        let mut drawables: Vec<&Entity> = world.drawables().collect();
+        drawables.sort_by_key(|e| {
+            let g = e.geometry().unwrap();
+            let r = g.rect();
+            r.y as i32+r.h as i32
+        });
+
+        drawables.iter().for_each(|e| {
             self.draw_entity(e);
         });
 

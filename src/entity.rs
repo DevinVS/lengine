@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::geometry::EntityGeometryState;
-use crate::graphics::EntityGraphicsState;
-use crate::physics::EntityPhysicsState;
+use crate::geometry::GeometryComponent;
+use crate::graphics::GraphicsComponent;
+use crate::physics::PhysicsComponent;
 
 // Struct which represents a given entity in the game world.
 // A requirement is that they exist inside the world and take up space.
@@ -10,39 +10,40 @@ use crate::physics::EntityPhysicsState;
 // Which allow different engine subsystems to query for appropriate entities
 // And store state inside of them
 pub struct Entity {
-    graphics_state: Option<EntityGraphicsState>,
-    physics_state: Option<EntityPhysicsState>,
-    geometry_state: Option<EntityGeometryState>,
+
+    graphics_component: Option<GraphicsComponent>,
+    physics_component: Option<PhysicsComponent>,
+    geometry_component: Option<GeometryComponent>,
 }
 
 impl Entity {
 
     pub fn new(
-        graphics_state: Option<EntityGraphicsState>,
-        physics_state: Option<EntityPhysicsState>,
-        geometry_state: Option<EntityGeometryState>
+        graphics_component: Option<GraphicsComponent>,
+        physics_component: Option<PhysicsComponent>,
+        geometry_component: Option<GeometryComponent>
     ) -> Entity {
 
         Entity {
-            graphics_state,
-            physics_state,
-            geometry_state
+            graphics_component,
+            physics_component,
+            geometry_component
         }
 
     }
 
-    pub fn has_geometry(&self) -> bool { self.geometry_state.is_some() }
-    pub fn has_physics(&self) -> bool { self.physics_state.is_some() }
-    pub fn has_graphics(&self) -> bool { self.graphics_state.is_some() }
+    pub fn has_geometry(&self) -> bool { self.geometry_component.is_some() }
+    pub fn has_physics(&self) -> bool { self.physics_component.is_some() }
+    pub fn has_graphics(&self) -> bool { self.graphics_component.is_some() }
 
-    pub fn geometry(&self) -> Option<&EntityGeometryState> { self.geometry_state.as_ref() }
-    pub fn geometry_mut(&mut self) -> Option<&mut EntityGeometryState> { self.geometry_state.as_mut() }
+    pub fn geometry(&self) -> Option<&GeometryComponent> { self.geometry_component.as_ref() }
+    pub fn geometry_mut(&mut self) -> Option<&mut GeometryComponent> { self.geometry_component.as_mut() }
 
-    pub fn physics(&self) -> Option<&EntityPhysicsState> { self.physics_state.as_ref() }
-    pub fn physics_mut(&mut self) -> Option<&mut EntityPhysicsState> { self.physics_state.as_mut() }
+    pub fn physics(&self) -> Option<&PhysicsComponent> { self.physics_component.as_ref() }
+    pub fn physics_mut(&mut self) -> Option<&mut PhysicsComponent> { self.physics_component.as_mut() }
 
-    pub fn graphics(&self) -> Option<&EntityGraphicsState> { self.graphics_state.as_ref() }
-    pub fn graphics_mut(&self) -> Option<&EntityGraphicsState> { self.graphics_state.as_ref() }
+    pub fn graphics(&self) -> Option<&GraphicsComponent> { self.graphics_component.as_ref() }
+    pub fn graphics_mut(&mut self) -> Option<&mut GraphicsComponent> { self.graphics_component.as_mut() }
 }
 
 // Numeric constants that we use as flags to 
@@ -100,8 +101,8 @@ impl EntityManager {
     // to the query flags
     pub fn query(&self, query: Query) -> impl Iterator<Item = &Entity> {
         self.entities.values().filter(move |e| {
-            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
-            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
+            (query & QueryFlag::PHYSICS == 0 || e.physics_component.is_some()) &&
+            (query & QueryFlag::GRAPHICS == 0 || e.graphics_component.is_some())
         })
     }
 
@@ -109,8 +110,8 @@ impl EntityManager {
     // to the query flags
     pub fn query_mut(&mut self, query: Query) -> impl Iterator<Item = &mut Entity> {
         self.entities.values_mut().filter(move |e| {
-            (query & QueryFlag::PHYSICS == 0 || e.physics_state.is_some()) &&
-            (query & QueryFlag::GRAPHICS == 0 || e.graphics_state.is_some())
+            (query & QueryFlag::PHYSICS == 0 || e.physics_component.is_some()) &&
+            (query & QueryFlag::GRAPHICS == 0 || e.graphics_component.is_some())
         })
     }
 }

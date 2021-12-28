@@ -1,5 +1,9 @@
 use crate::world::World;
 
+pub struct AnimationComponent {
+
+}
+
 pub struct AnimationSystem {
 
 }

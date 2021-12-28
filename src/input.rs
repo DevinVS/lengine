@@ -61,7 +61,7 @@ impl InputSystem {
 
                 // If joystick connected and its values beyond the deadzone use it, otherwise
                 // buttons and keys
-                let max_mag = 500.0;
+                let max_mag = 100.0;
 
                 let mut vel = if self.controller.is_some() {
                     let c = self.controller.as_ref().unwrap();
@@ -85,17 +85,24 @@ impl InputSystem {
                 };
 
                 vel.mag *= max_mag;
-                println!("{:?}", vel);
                 physics_state.velocity = vel;
+
+                if let Some(graphics) = player.graphics_mut() {
+                    if vel.x() > 0.1 {
+                        graphics.flipped = false;
+                    } else if vel.x() < -0.1 {
+                        graphics.flipped = true;
+                    }
+                }
             }
         }
     }
 
     fn button_movement(&self) -> (f32, f32) {
-        let north = self.key_state.contains(&Keycode::W) || self.button_state.contains(&Button::DPadUp);
-        let west = self.key_state.contains(&Keycode::A) || self.button_state.contains(&Button::DPadLeft);
-        let south = self.key_state.contains(&Keycode::S) || self.button_state.contains(&Button::DPadDown);
-        let east = self.key_state.contains(&Keycode::D) || self.button_state.contains(&Button::DPadRight);
+        let north = self.key_state.contains(&Keycode::W) || self.button_state.contains(&Button::DPadUp) || self.key_state.contains(&Keycode::Up);
+        let west = self.key_state.contains(&Keycode::A) || self.button_state.contains(&Button::DPadLeft) || self.key_state.contains(&Keycode::Left);
+        let south = self.key_state.contains(&Keycode::S) || self.button_state.contains(&Button::DPadDown) || self.key_state.contains(&Keycode::Down);
+        let east = self.key_state.contains(&Keycode::D) || self.button_state.contains(&Button::DPadRight) || self.key_state.contains(&Keycode::Right);
 
         let mut mag = 1.0;
 
