@@ -87,6 +87,14 @@ impl InputSystem {
                 vel.mag *= max_mag;
                 physics_state.velocity = vel;
 
+                if vel.mag != 0.0 {
+                    player.remove_state("idle".into());
+                    player.add_state("walking".into());
+                } else {
+                    player.remove_state("walking".into());
+                    player.add_state("idle".into());
+                }
+
                 if let Some(graphics) = player.graphics_mut() {
                     if vel.x() > 0.1 {
                         graphics.flipped = false;

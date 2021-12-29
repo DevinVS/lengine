@@ -99,15 +99,17 @@ impl<'a> GraphicsSystem<'a> {
         self.canvas.clear();
 
         if let Some(player) = world.get_player() {
-            self.follow(player);
+            self.follow(&player);
         }
 
-        let mut drawables: Vec<&Entity> = world.drawables().collect();
+        let mut drawables: Vec<Entity> = world.drawables().collect();
+
         drawables.sort_by_key(|e| {
             let g = e.geometry().unwrap();
             let r = g.rect();
             r.y as i32+r.h as i32
         });
+
 
         drawables.iter().for_each(|e| {
             self.draw_entity(e);

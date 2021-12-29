@@ -1,6 +1,6 @@
 use crate::vector::Vector;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,
@@ -18,25 +18,37 @@ impl Rect {
     }
 
     pub fn has_intersection(&self, other: Rect) -> bool {
-        if self.x >= other.x || other.x >= self.x {
+        let left = self.x;
+        let right = self.x + self.w as f32;
+        let top = self.y;
+        let bottom = self.y + self.h as f32;
+
+        let o_left = other.x;
+        let o_right = other.x + other.w as f32;
+        let o_top = other.y;
+        let o_bottom = other.y + other.h as f32;
+
+        if right <= o_left || o_right <= left {
             return false;
         }
 
-        if self.y >= other.y || other.y >= self.y {
+        if top >= o_bottom || o_top >= bottom {
             return false;
         }
 
         return true;
     }
 
-    pub fn after_vector(&mut self, v: Vector) {
+    pub fn apply_vector(&mut self, v: Vector) {
         self.x += v.x();
         self.y += v.y();
     }
 
-    pub fn after_depth(&mut self, d: u32) {
+    pub fn after_depth(mut self, d: u32) -> Rect {
         self.y += self.h as f32 - d as f32;
         self.h = d;
+
+        self
     }
 }
 

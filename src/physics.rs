@@ -34,7 +34,7 @@ impl PhysicsSystem {
 
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
-        let mut entities: Vec<&mut Entity> = world.physical_mut().collect();
+        let mut entities: Vec<Entity> = world.physical_mut().collect();
 
         for i in 0..entities.len() {
             // Apply final velocities
@@ -44,9 +44,7 @@ impl PhysicsSystem {
             let rect = entities.get_mut(i).unwrap().geometry().unwrap().rect().clone();
 
             let depth = entities.get(i).unwrap().physics().unwrap().depth;
-            let mut footprint = rect.clone();
-            footprint.y += footprint.h as f32 - depth as f32;
-            footprint.h = depth;
+            let footprint = rect.clone().after_depth(depth);
 
             let mut after_x = footprint.clone();
             let mut after_y = footprint.clone();
@@ -62,9 +60,7 @@ impl PhysicsSystem {
                 let other_rect = entities[j].geometry().unwrap().rect();
                 let other_depth = entities[j].physics().unwrap().depth;
 
-                let mut other_footprint = other_rect.clone();
-                other_footprint.y += other_footprint.h as f32 - other_depth as f32;
-                other_footprint.h = other_depth;
+                let other_footprint = other_rect.clone().after_depth(other_depth);
 
                 let x_collision = after_x.has_intersection(other_footprint);
                 let y_collision = after_y.has_intersection(other_footprint);
@@ -85,7 +81,7 @@ impl PhysicsSystem {
                 .geometry_mut()
                 .unwrap()
                 .rect_mut()
-                .after_vector(delta_vec);
+                .apply_vector(delta_vec);
         }
 
         self.last_tick = Instant::now();
