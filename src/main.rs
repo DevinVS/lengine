@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::{process::exit, time::Duration};
 use game::animation::Animation;
 
-use game::{animation::AnimationSystem, effect::EffectsSystem, entity::{Entity}, geometry::GeometryComponent, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, vector::Vector, world::World};
+use game::{animation::AnimationSystem, effect::EffectsSystem, geometry::GeometryComponent, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, vector::Vector, world::World};
 use game::animation::AnimationComponent;
 use sdl2::{event::Event, image::InitFlag, keyboard::Keycode};
 
@@ -45,39 +45,34 @@ fn main() {
     let idle_animation = Animation::new(
         vec![tex0, tex1, tex2, tex3, tex4, tex5, tex4, tex3, tex2, tex1],
         0.05,
-        0
     );
 
     let walking_animation = Animation::new(
         vec![tex6],
         10.0,
-        1
     );
 
     let mut a_map = HashMap::new();
     a_map.insert("idle".into(), idle_animation);
     a_map.insert("walking".into(), walking_animation);
 
-    let mut test = Entity::new(
-        Some(GraphicsComponent{texture_id: tex1, flipped: false}),
-        Some(PhysicsComponent::new(2)),
+    let test = world.add_entity(
         Some(GeometryComponent::new(0.0, 0.0, 20, 20)),
+        Some(PhysicsComponent::new(2)),
+        Some(GraphicsComponent{texture_id: tex1, flipped: false}),
         Some(AnimationComponent::new(a_map))
     );
 
-    test.add_state("idle".to_string());
+    world.add_entity_state(test, "idle".to_string());
 
-    let test_id = world.add_entity(test);
-    world.player_id = Some(test_id);
+    world.player_id = Some(test);
 
-    let box_e = Entity::new(
-        Some(GraphicsComponent{texture_id: box_tex, flipped: false}),
-        Some(PhysicsComponent::new(100)),
+    world.add_entity(
         Some(GeometryComponent::new(20.0, 20.0, 100, 100)),
+        Some(PhysicsComponent::new(100)),
+        Some(GraphicsComponent{texture_id: box_tex, flipped: false}),
         None
     );
-
-    world.add_entity(box_e);
 
     // Create Game Systems
     let mut input_system = InputSystem::new(

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-
+use std::collections::HashSet;
 use sdl2::rect::Rect;
 use sdl2::{EventPump, VideoSubsystem};
 use sdl2::pixels::Color;
@@ -10,7 +10,7 @@ use sdl2::image::{InitFlag, LoadTexture, Sdl2ImageContext};
 use sdl2::Sdl;
 use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
-use crate::entity::Entity;
+use crate::geometry::GeometryComponent;
 use crate::world::World;
 
 pub struct GraphicsComponent {
@@ -73,16 +73,16 @@ impl<'a> GraphicsSystem<'a> {
     }
 
     // Make the Camera follow the entity
-    fn follow(&mut self, entity: &Entity) {
+    fn follow(&mut self, entity: (&GeometryComponent, &GraphicsComponent)) {
     }
 
     // Draw an entity based on its position and texture
-    pub fn draw_entity(&mut self, entity: &Entity) {
-        let tex_id = entity.graphics().unwrap().texture_id;
-        let flipped = entity.graphics().unwrap().flipped;
+    pub fn draw_entity(&mut self, entity: (&HashSet<String>, &GeometryComponent, &GraphicsComponent)) {
+        let tex_id = entity.2.texture_id;
+        let flipped = entity.2.flipped;
         let texture = self.texture_manager.get_texture(tex_id).unwrap();
 
-        let mut entity_rect = entity.geometry().unwrap().rect().clone();
+        let mut entity_rect = entity.1.rect().clone();
         entity_rect.x -= self.camera.x as f32;
         entity_rect.y -= self.camera.y as f32;
 
@@ -98,21 +98,20 @@ impl<'a> GraphicsSystem<'a> {
     pub fn run(&mut self, world: &mut World) {
         self.canvas.clear();
 
-        if let Some(player) = world.get_player() {
-            self.follow(&player);
-        }
+        // if let Some(player) = world.get_player() {
+        //     self.follow(&player);
+        // }
 
-        let mut drawables: Vec<Entity> = world.drawables().collect();
+        let mut drawables: Vec<(usize, (_, &GeometryComponent, &GraphicsComponent))> = world.graphics().collect();
 
         drawables.sort_by_key(|e| {
-            let g = e.geometry().unwrap();
-            let r = g.rect();
+            let r = e.1.1.rect();
             r.y as i32+r.h as i32
         });
 
 
         drawables.iter().for_each(|e| {
-            self.draw_entity(e);
+            self.draw_entity(e.1);
         });
 
         self.canvas.present();

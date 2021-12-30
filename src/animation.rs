@@ -6,18 +6,16 @@ pub struct Animation {
     textures: Vec<usize>,
     period: f32,
     curr_tex_index: usize,
-    last_switch: Instant,
-    priority: usize
+    last_switch: Instant
 }
 
 impl Animation {
-    pub fn new(textures: Vec<usize>, period: f32, priority: usize) -> Animation {
+    pub fn new(textures: Vec<usize>, period: f32) -> Animation {
         Animation {
             textures,
             period,
             curr_tex_index: 0,
-            last_switch: Instant::now(),
-            priority
+            last_switch: Instant::now()
         }
     }
 
@@ -32,17 +30,45 @@ impl Animation {
             self.last_switch = Instant::now();
         }
     }
+
+    fn current_texture(&self) -> usize {
+        self.textures[self.curr_tex_index]
+    }
 }
 
 pub struct AnimationComponent {
-    animations: HashMap<String, Animation>
+    animations: HashMap<String, Animation>,
+    curr_key: Option<String>
 }
 
 impl AnimationComponent {
     pub fn new(animations: HashMap<String, Animation>) -> AnimationComponent {
         AnimationComponent {
-            animations
+            animations,
+            curr_key: None
         }
+    }
+
+    pub fn get(&self, key: &String) -> Option<&Animation> {
+        self.animations.get(key)
+    }
+
+    pub fn get_mut(&mut self, key: &String) -> Option<&mut Animation> {
+        self.animations.get_mut(key)
+    }
+
+    pub fn current(&self) -> Option<&Animation> {
+        if self.curr_key.is_none() { return None; }
+
+        self.get(self.curr_key.as_ref().unwrap())
+    }
+
+    pub fn current_mut(&mut self) -> Option<&mut Animation> {
+        if self.curr_key.is_none() { return None; }
+
+        let key = self.curr_key.as_ref().unwrap().clone();
+
+        self.get_mut(&key)
     }
 }
 
@@ -54,36 +80,28 @@ impl AnimationSystem {
     }
 
     pub fn run(&mut self, world: &mut World) {
-        for entity in world.animatable_mut() {
-            // Finish the currently running animation
-            for animation in entity.animation_mut().unwrap().animations.values_mut() {
-                if animation.curr_tex_index != 0 {
+        for (_, (states, _, graphics, animations)) in world.animations_mut() {
+            // If an animation is currently playing, play it
+            if let Some(animation) = animations.current_mut() {
+                animation.tick();
+                graphics.texture_id = animation.current_texture();
+
+                if animation.curr_tex_index == 0 {
+                    animations.curr_key = None;
+                }
+
+                continue;
+            }
+
+            // Else find the state which determines the animation
+            for state in states.iter() {
+                if let Some(animation) = animations.get_mut(state) {
+
                     animation.tick();
-                    let tex_id = animation.textures[animation.curr_tex_index];
-                    entity.graphics_mut().unwrap().texture_id = tex_id;
-                    return;
+                    graphics.texture_id = animation.current_texture();
+                    animations.curr_key = Some(state.clone());
+                    break;
                 }
-            }
-
-            let states = entity.states().clone();
-
-            let mut priority = None;
-            let mut tex_id = None;
-
-            // Run the animation with the highest priority
-            for state in states {
-                if let Some(animation) = entity.animation_mut().unwrap().animations.get_mut(&state) {
-                    if priority.is_none() || animation.priority > priority.unwrap() {
-                        priority = Some(animation.priority);
-                        animation.tick();
-                        tex_id = Some(animation.textures[animation.curr_tex_index]);
-                    }
-                }
-            }
-
-            // Apply next texture index
-            if let Some(tex_id) = tex_id {
-                entity.graphics_mut().unwrap().texture_id = tex_id;
             }
         }
     }

@@ -11,3 +11,4 @@ path = "src/lib.rs"
 
 [dependencies]
 sdl2 = {version="*", features=["image"]}
+itertools = "*"
