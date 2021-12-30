@@ -52,6 +52,14 @@ impl Rect {
     }
 }
 
+impl std::ops::Add<Rect> for Rect {
+    type Output = Rect;
+
+    fn add(self, other: Rect) -> Rect {
+        Rect::new(self.x+other.x,self.y+other.y,self.w+other.w,self.h+other.h)
+    }
+}
+
 pub struct GeometryComponent {
     rect: Rect
 }

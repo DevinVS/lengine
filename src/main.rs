@@ -40,6 +40,7 @@ fn main() {
     let tex4 = texture_manager.load_texture("./assets/5.png");
     let tex5 = texture_manager.load_texture("./assets/6.png");
     let tex6 = texture_manager.load_texture("./assets/walk.png");
+    let tex7 = texture_manager.load_texture("./assets/collide.png");
     let box_tex = texture_manager.load_texture("./assets/box.png");
 
     let idle_animation = Animation::new(
@@ -52,25 +53,30 @@ fn main() {
         10.0,
     );
 
+    let collide_animation = Animation::new(
+        vec![tex7],
+        10.0
+    );
+
     let mut a_map = HashMap::new();
     a_map.insert("idle".into(), idle_animation);
     a_map.insert("walking".into(), walking_animation);
+    a_map.insert("colliding".into(), collide_animation);
 
     let test = world.add_entity(
         Some(GeometryComponent::new(0.0, 0.0, 20, 20)),
-        Some(PhysicsComponent::new(2)),
-        Some(GraphicsComponent{texture_id: tex1, flipped: false}),
+        Some(PhysicsComponent::new(2, true)),
+        Some(GraphicsComponent::new(tex1)),
         Some(AnimationComponent::new(a_map))
     );
 
     world.add_entity_state(test, "idle".to_string());
-
     world.player_id = Some(test);
 
     world.add_entity(
-        Some(GeometryComponent::new(20.0, 20.0, 100, 100)),
-        Some(PhysicsComponent::new(100)),
-        Some(GraphicsComponent{texture_id: box_tex, flipped: false}),
+        Some(GeometryComponent::new(30.0, 30.0, 30, 30)),
+        Some(PhysicsComponent::new(20, false)),
+        Some(GraphicsComponent::new(box_tex)),
         None
     );
 

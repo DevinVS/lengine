@@ -10,8 +10,7 @@ use crate::animation::AnimationComponent;
 
 // Struct containing all game data and current state
 pub struct World {
-    // Definition of the bounds and rendering for
-    // the world
+    // Definition of the bounds and rendering for the world
     map: WorldMap,
     // Player / Currently controlled entity id
     pub player_id: Option<usize>,

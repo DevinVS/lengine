@@ -1,21 +1,27 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::collections::HashSet;
-use sdl2::rect::Rect;
-use sdl2::{EventPump, VideoSubsystem};
-use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::{Window, WindowContext};
-use sdl2::image::{InitFlag, LoadTexture, Sdl2ImageContext};
-use sdl2::Sdl;
+use sdl2::image::LoadTexture;
 use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
-use crate::geometry::GeometryComponent;
+use crate::geometry::{GeometryComponent, Rect};
 use crate::world::World;
 
 pub struct GraphicsComponent {
     pub texture_id: usize,
-    pub flipped: bool
+    pub offset: (f32, f32, i32, i32),
+    pub flipped: bool,
+}
+
+impl GraphicsComponent {
+    pub fn new(tex_id: usize) -> GraphicsComponent {
+        GraphicsComponent {
+            texture_id: tex_id,
+            flipped: false,
+            offset: (0.0, 0.0, 0, 0)
+        }
+    }
 }
 
 pub struct Camera {
@@ -83,15 +89,18 @@ impl<'a> GraphicsSystem<'a> {
         let texture = self.texture_manager.get_texture(tex_id).unwrap();
 
         let mut entity_rect = entity.1.rect().clone();
-        entity_rect.x -= self.camera.x as f32;
-        entity_rect.y -= self.camera.y as f32;
+        entity_rect.x -= self.camera.x as f32 + entity.2.offset.0;
+        entity_rect.y -= self.camera.y as f32 + entity.2.offset.1;
+
+        entity_rect.w = (entity_rect.w as i32 + entity.2.offset.2) as u32;
+        entity_rect.h = (entity_rect.h as i32 + entity.2.offset.3) as u32;
 
         entity_rect.x *= self.camera.zoom as f32;
         entity_rect.y *= self.camera.zoom as f32;
         entity_rect.w *= self.camera.zoom;
         entity_rect.h *= self.camera.zoom;
 
-        self.canvas.copy_ex(texture, None, entity_rect.sdl2(), 0.0, None, flipped, false);
+        self.canvas.copy_ex(texture, None, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
     }
 
     // Run the system

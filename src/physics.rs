@@ -1,18 +1,21 @@
 use std::f32::consts::FRAC_PI_2;
-
 use crate::{vector::Vector, world::World, geometry::GeometryComponent};
 use std::time::Instant;
+use std::collections::HashSet;
+
 
 pub struct PhysicsComponent {
     pub depth: u32,
-    pub velocity: Vector    // Velocity on an object, do not set directly
+    pub velocity: Vector,
+    physical: bool
 }
 
 impl PhysicsComponent {
-    pub fn new(depth: u32) -> PhysicsComponent {
+    pub fn new(depth: u32, physical: bool) -> PhysicsComponent {
         PhysicsComponent {
             depth,
-            velocity: Vector::zero()
+            velocity: Vector::zero(),
+            physical
         }
     }
 }
@@ -34,7 +37,7 @@ impl PhysicsSystem {
 
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
-        let mut entities: Vec<(usize, (_, &mut GeometryComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
+        let mut entities: Vec<(usize, (&mut HashSet<String>, &mut GeometryComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
 
         for i in 0..entities.len() {
             // Apply final velocities
@@ -52,6 +55,8 @@ impl PhysicsSystem {
             after_x.x += delta_vec.x();
             after_y.y += delta_vec.y();
 
+            let mut collides = false;
+
             // Check and handle collisions
             for j in 0..entities.len() {
                 // If we are compareing the same rectangle skip
@@ -65,15 +70,27 @@ impl PhysicsSystem {
                 let x_collision = after_x.has_intersection(other_footprint);
                 let y_collision = after_y.has_intersection(other_footprint);
 
-                if x_collision && y_collision {
-                    delta_vec.mag = 0.0;
-                } else if x_collision {
-                    delta_vec.mag *= delta_vec.dir.sin();
-                    delta_vec.dir = FRAC_PI_2;
-                } else if y_collision {
-                    delta_vec.mag *= delta_vec.dir.cos();
-                    delta_vec.dir = 0.0;
+                if x_collision || y_collision {
+                    collides = true;
                 }
+
+                if entities[i].1.2.physical && entities[j].1.2.physical {
+                    if x_collision && y_collision {
+                        delta_vec.mag = 0.0;
+                    } else if x_collision {
+                        delta_vec.mag *= delta_vec.dir.sin();
+                        delta_vec.dir = FRAC_PI_2;
+                    } else if y_collision {
+                        delta_vec.mag *= delta_vec.dir.cos();
+                        delta_vec.dir = 0.0;
+                    }
+                }
+            }
+
+            if collides {
+                entities[i].1.0.insert("colliding".to_string());
+            } else {
+                entities[i].1.0.remove(&"colliding".to_string());
             }
 
             entities[i].1.1.rect_mut().apply_vector(delta_vec);
