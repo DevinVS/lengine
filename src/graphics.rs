@@ -70,7 +70,7 @@ impl<'a> TextureManager<'a> {
 
 // The actual rendering system, uses GraphicsState
 pub struct GraphicsSystem<'a> {
-    texture_manager: TextureManager<'a>,
+    pub texture_manager: TextureManager<'a>,
     canvas: &'a mut Canvas<Window>,
     camera: Camera
 }

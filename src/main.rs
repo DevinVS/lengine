@@ -1,17 +1,35 @@
 use std::collections::HashMap;
-use std::{process::exit, time::Duration};
-use game::vector::Vector;
+use std::process::exit;
+use std::time::Duration;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use yaml_rust::{YamlLoader, Yaml};
+use std::sync::mpsc::channel;
 
-use game::{animation::AnimationSystem, effect::EffectsSystem, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, world::World};
-use game::animation::{AnimationComponent, Animation};
+use notify::RecursiveMode;
+use notify::Watcher;
+use notify::watcher;
+use yaml_rust::YamlLoader;
+
+use sdl2::event::Event;
+use sdl2::image::InitFlag;
+use sdl2::keyboard::Keycode;
+
+use game::map::WorldMap;
+use game::world::World;
+use game::input::InputSystem;
 use game::geometry::{PositionComponent, Rect};
-use sdl2::{event::Event, image::InitFlag, keyboard::Keycode};
+use game::physics::{PhysicsSystem, PhysicsComponent};
+use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager};
+use game::animation::{AnimationSystem, AnimationComponent, Animation};
+use game::effect::EffectsSystem;
 
 fn main() {
+    // Code for watching changes
+    let (tx, rx) = channel();
+    let mut watcher = watcher(tx, Duration::from_secs(1)).unwrap();
+    watcher.watch("./assets", RecursiveMode::Recursive).unwrap();
+
     // Create context and relevant subsystems
     let sdl2_context = sdl2::init().unwrap();
     let video_subsystem = sdl2_context.video().unwrap();
@@ -34,15 +52,10 @@ fn main() {
     let mut texture_manager = TextureManager::new(&texture_creator);
 
     // Load Game Data
-    let mut world = load_world_from_yaml("./game.yaml", &mut texture_manager).unwrap();
-
-    println!("{:?}", world.animations);
+    let mut world = load_world_from_yaml("./game.yml", &mut texture_manager).unwrap();
 
     // Create Game Systems
-    let mut input_system = InputSystem::new(
-        controller_subsystem,
-        joystick_subsystem
-    );
+    let mut input_system = InputSystem::new(controller_subsystem, joystick_subsystem);
     let mut physics_system = PhysicsSystem::new();
     let mut effects_system = EffectsSystem::new();
     let mut animation_system = AnimationSystem::new();
@@ -67,6 +80,13 @@ fn main() {
         effects_system.run(&mut world);
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
+
+        // Check for changes
+        if rx.try_recv().is_ok() {
+            texture_manager = TextureManager::new(&texture_creator);
+            world = load_world_from_yaml("game.yml", &mut texture_manager).unwrap();
+            graphics_system.texture_manager = texture_manager;
+        }
 
         // Sleep
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

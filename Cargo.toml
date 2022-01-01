@@ -13,3 +13,4 @@ path = "src/lib.rs"
 sdl2 = {version="*", features=["image"]}
 itertools = "*"
 yaml-rust = "0.4"
+notify = "*"
