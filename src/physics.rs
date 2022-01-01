@@ -23,10 +23,6 @@ impl PhysicsComponent {
     }
 }
 
-// We keep track of everything physics related with forces,
-// meaning we need to know the mass of every object to determine
-// its acceleration and thus its velocity and its position for
-// the next frame.
 pub struct PhysicsSystem {
     last_tick: Instant
 }

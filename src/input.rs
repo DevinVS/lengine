@@ -5,27 +5,33 @@ use sdl2::{GameControllerSubsystem, JoystickSubsystem};
 use sdl2::controller::GameController;
 use sdl2::controller::Axis;
 
+/// System to handle input devices such as keyboards, joysticks, and controllers
 pub struct InputSystem {
+    /// Set of all the currently pressed keys
     key_state: HashSet<Keycode>,
+    /// Set of all the currently pressed buttons
     button_state: HashSet<Button>,
+    /// Subsystem for enumerating, opening, and closing controllers
     controller_system: GameControllerSubsystem,
-    joystick_system: JoystickSubsystem,
+    /// Currently selected controller
     controller: Option<GameController>,
+    /// Currently selected controller id
     controller_id: u32
 }
 
 impl InputSystem {
-    pub fn new(gs: GameControllerSubsystem, js: JoystickSubsystem) -> InputSystem {
+    /// Create a new Input System
+    pub fn new(gs: GameControllerSubsystem) -> InputSystem {
         InputSystem {
             key_state: HashSet::new(),
             button_state: HashSet::new(),
             controller_system: gs,
-            joystick_system: js,
             controller: None,
             controller_id: 0
         }
     }
 
+    /// Process an event from the event pump
     pub fn handle_event(&mut self, event: Event) {
         match event {
             Event::KeyDown{ keycode: Some(k), .. } => {
@@ -52,6 +58,7 @@ impl InputSystem {
         }
     }
 
+    /// Based on current input modify the world state
     pub fn run(&mut self, world: &mut World) {
         // Act based up on current key state
 
@@ -103,6 +110,7 @@ impl InputSystem {
         }
     }
 
+    /// Move the player using the buttons as inputs
     fn button_movement(&self) -> (f32, f32) {
         let north = self.key_state.contains(&Keycode::W) || self.button_state.contains(&Button::DPadUp) || self.key_state.contains(&Keycode::Up);
         let west = self.key_state.contains(&Keycode::A) || self.button_state.contains(&Button::DPadLeft) || self.key_state.contains(&Keycode::Left);
