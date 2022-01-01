@@ -44,6 +44,13 @@ impl Rect {
         self.y += v.y();
     }
 
+    pub fn after_position(mut self, pos: &PositionComponent) -> Rect {
+        self.x += pos.x;
+        self.y += pos.y;
+
+        self
+    }
+
     pub fn after_depth(mut self, d: u32) -> Rect {
         self.y += self.h as f32 - d as f32;
         self.h = d;
@@ -60,22 +67,21 @@ impl std::ops::Add<Rect> for Rect {
     }
 }
 
-pub struct GeometryComponent {
-    rect: Rect
+#[derive(Debug)]
+pub struct PositionComponent {
+    x: f32,
+    y: f32
 }
 
-impl GeometryComponent {
-    pub fn new(x: f32, y: f32, width: u32, height: u32) -> GeometryComponent {
-        GeometryComponent {
-            rect: Rect::new(x, y, width, height)
+impl PositionComponent {
+    pub fn new(x: f32, y: f32) -> PositionComponent {
+        PositionComponent {
+            x, y
         }
     }
 
-    pub fn rect(&self) -> &Rect {
-        &self.rect
-    }
-
-    pub fn rect_mut(&mut self) -> &mut Rect {
-        &mut self.rect
+    pub fn apply_vector(&mut self, vec: Vector) {
+        self.x += vec.x();
+        self.y += vec.y();
     }
 }

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use itertools::izip;
 
 use crate::map::WorldMap;
-use crate::geometry::GeometryComponent;
+use crate::geometry::PositionComponent;
 use crate::physics::PhysicsComponent;
 use crate::graphics::GraphicsComponent;
 use crate::animation::AnimationComponent;
@@ -16,11 +16,11 @@ pub struct World {
     pub player_id: Option<usize>,
 
     // Properties for each entity
-    states: Vec<HashSet<String>>,
-    geometry: Vec<Option<GeometryComponent>>,
-    physics: Vec<Option<PhysicsComponent>>,
-    graphics: Vec<Option<GraphicsComponent>>,
-    animation: Vec<Option<AnimationComponent>>
+    pub states: Vec<HashSet<String>>,
+    pub positions: Vec<Option<PositionComponent>>,
+    pub physics: Vec<Option<PhysicsComponent>>,
+    pub graphics: Vec<Option<GraphicsComponent>>,
+    pub animations: Vec<Option<AnimationComponent>>
 }
 
 impl World {
@@ -29,24 +29,24 @@ impl World {
             map,
             player_id: None,
             states: Vec::new(),
-            geometry: Vec::new(),
+            positions: Vec::new(),
             physics: Vec::new(),
             graphics: Vec::new(),
-            animation: Vec::new()
+            animations: Vec::new()
         }
     }
     // Add an entity to the entity manager
     pub fn add_entity(&mut self,
-        geometry: Option<GeometryComponent>,
+        position: Option<PositionComponent>,
         physics: Option<PhysicsComponent>,
         graphics: Option<GraphicsComponent>,
         animation: Option<AnimationComponent>,
     ) -> usize {
         self.states.push(HashSet::new());
-        self.geometry.push(geometry);
+        self.positions.push(position);
         self.physics.push(physics);
         self.graphics.push(graphics);
-        self.animation.push(animation);
+        self.animations.push(animation);
 
         self.states.len()-1
     }
@@ -64,50 +64,50 @@ impl World {
         &mut self.states[id]
     }
 
-    pub fn geometry(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &GeometryComponent))> {
-        izip!(self.states.iter(), self.geometry.iter()).enumerate()
+    pub fn positions(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent))> {
+        izip!(self.states.iter(), self.positions.iter()).enumerate()
             .filter(|e| e.1.1.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap())))
     }
 
-    pub fn geometry_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut GeometryComponent))> {
-        izip!(self.states.iter_mut(), self.geometry.iter_mut()).enumerate()
+    pub fn positions_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent))> {
+        izip!(self.states.iter_mut(), self.positions.iter_mut()).enumerate()
             .filter(|e| e.1.1.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap())))
     }
 
-    pub fn physics(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &GeometryComponent, &PhysicsComponent))> {
-        izip!(self.states.iter(), self.geometry.iter(), self.physics.iter()).enumerate()
+    pub fn physics(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent, &PhysicsComponent))> {
+        izip!(self.states.iter(), self.positions.iter(), self.physics.iter()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap(), e.1.2.as_ref().unwrap())))
     }
 
-    pub fn physics_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut GeometryComponent, &mut PhysicsComponent))> {
-        izip!(self.states.iter_mut(), self.geometry.iter_mut(), self.physics.iter_mut()).enumerate()
+    pub fn physics_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> {
+        izip!(self.states.iter_mut(), self.positions.iter_mut(), self.physics.iter_mut()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap(), e.1.2.as_mut().unwrap())))
     }
 
-    pub fn graphics(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &GeometryComponent, &GraphicsComponent))> {
-        izip!(self.states.iter(), self.geometry.iter(), self.graphics.iter()).enumerate()
+    pub fn graphics(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent, &GraphicsComponent))> {
+        izip!(self.states.iter(), self.positions.iter(), self.graphics.iter()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap(), e.1.2.as_ref().unwrap())))
     }
 
-    pub fn graphics_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut GeometryComponent, &mut GraphicsComponent))> {
-        izip!(self.states.iter_mut(), self.geometry.iter_mut(), self.graphics.iter_mut()).enumerate()
+    pub fn graphics_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent, &mut GraphicsComponent))> {
+        izip!(self.states.iter_mut(), self.positions.iter_mut(), self.graphics.iter_mut()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap(), e.1.2.as_mut().unwrap())))
     }
 
-    pub fn animations(&self) -> impl Iterator<Item = (usize, (&HashSet<String>,&GeometryComponent, &GraphicsComponent, &AnimationComponent))> {
-        izip!(self.states.iter(), self.geometry.iter(), self.graphics.iter(), self.animation.iter()).enumerate()
+    pub fn animations(&self) -> impl Iterator<Item = (usize, (&HashSet<String>,&PositionComponent, &GraphicsComponent, &AnimationComponent))> {
+        izip!(self.states.iter(), self.positions.iter(), self.graphics.iter(), self.animations.iter()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some() && e.1.3.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap(), e.1.2.as_ref().unwrap(), e.1.3.as_ref().unwrap())))
     }
 
-    pub fn animations_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut GeometryComponent, &mut GraphicsComponent, &mut AnimationComponent))> {
-        izip!(self.states.iter_mut(), self.geometry.iter_mut(), self.graphics.iter_mut(), self.animation.iter_mut())
+    pub fn animations_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent, &mut GraphicsComponent, &mut AnimationComponent))> {
+        izip!(self.states.iter_mut(), self.positions.iter_mut(), self.graphics.iter_mut(), self.animations.iter_mut())
             .enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some() && e.1.3.is_some())
             .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap(), e.1.2.as_mut().unwrap(), e.1.3.as_mut().unwrap())))
@@ -122,36 +122,36 @@ impl World {
         &mut self.states[id]
     }
 
-    pub fn get_entity_geometry(&self, id: usize) -> Option<&GeometryComponent> {
-        self.geometry[id].as_ref()
+    pub fn get_entity_positions(&self, id: usize) -> Option<&PositionComponent> {
+        self.positions[id].as_ref()
     }
 
-    pub fn get_entity_geometry_mut(&mut self, id: usize) -> Option<&mut GeometryComponent> {
-        self.geometry[id].as_mut()
+    pub fn get_entity_positions_mut(&mut self, id: usize) -> Option<&mut PositionComponent> {
+        self.positions[id].as_mut()
     }
 
-    pub fn get_entity_physics(&self, id: usize) -> (Option<&GeometryComponent>, Option<&PhysicsComponent>) {
-        (self.geometry[id].as_ref(), self.physics[id].as_ref())
+    pub fn get_entity_physics(&self, id: usize) -> (Option<&PositionComponent>, Option<&PhysicsComponent>) {
+        (self.positions[id].as_ref(), self.physics[id].as_ref())
     }
 
-    pub fn get_entity_physics_mut(&mut self, id: usize) -> (Option<&mut GeometryComponent>, Option<&mut PhysicsComponent>) {
-        (self.geometry[id].as_mut(), self.physics[id].as_mut())
+    pub fn get_entity_physics_mut(&mut self, id: usize) -> (Option<&mut PositionComponent>, Option<&mut PhysicsComponent>) {
+        (self.positions[id].as_mut(), self.physics[id].as_mut())
     }
 
-    pub fn get_entity_graphics(&self, id: usize) -> (Option<&GeometryComponent>, Option<&GraphicsComponent>) {
-        (self.geometry[id].as_ref(), self.graphics[id].as_ref())
+    pub fn get_entity_graphics(&self, id: usize) -> (Option<&PositionComponent>, Option<&GraphicsComponent>) {
+        (self.positions[id].as_ref(), self.graphics[id].as_ref())
     }
 
-    pub fn get_entity_graphics_mut(&mut self, id: usize) -> (Option<&mut GeometryComponent>, Option<&mut GraphicsComponent>) {
-        (self.geometry[id].as_mut(), self.graphics[id].as_mut())
+    pub fn get_entity_graphics_mut(&mut self, id: usize) -> (Option<&mut PositionComponent>, Option<&mut GraphicsComponent>) {
+        (self.positions[id].as_mut(), self.graphics[id].as_mut())
     }
 
-    pub fn get_entity_animations(&self, id: usize) -> (Option<&GeometryComponent>, Option<&GraphicsComponent>, Option<&AnimationComponent>) {
-        (self.geometry[id].as_ref(), self.graphics[id].as_ref(), self.animation[id].as_ref())
+    pub fn get_entity_animations(&self, id: usize) -> (Option<&PositionComponent>, Option<&GraphicsComponent>, Option<&AnimationComponent>) {
+        (self.positions[id].as_ref(), self.graphics[id].as_ref(), self.animations[id].as_ref())
     }
 
-    pub fn get_entity_animations_mut(&mut self, id: usize) -> (Option<&mut GeometryComponent>, Option<&mut GraphicsComponent>, Option<&mut AnimationComponent>) {
-        (self.geometry[id].as_mut(), self.graphics[id].as_mut(), self.animation[id].as_mut())
+    pub fn get_entity_animations_mut(&mut self, id: usize) -> (Option<&mut PositionComponent>, Option<&mut GraphicsComponent>, Option<&mut AnimationComponent>) {
+        (self.positions[id].as_mut(), self.graphics[id].as_mut(), self.animations[id].as_mut())
     }
 
     // Control Entity State

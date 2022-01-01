@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 use std::{process::exit, time::Duration};
-use game::animation::Animation;
+use game::vector::Vector;
+use std::error::Error;
+use std::fs::File;
+use std::io::{BufReader, Read};
+use yaml_rust::{YamlLoader, Yaml};
 
-use game::{animation::AnimationSystem, effect::EffectsSystem, geometry::GeometryComponent, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, vector::Vector, world::World};
-use game::animation::AnimationComponent;
+use game::{animation::AnimationSystem, effect::EffectsSystem, graphics::{GraphicsComponent, GraphicsSystem, TextureManager}, input::InputSystem, map::WorldMap, physics::{PhysicsComponent, PhysicsSystem}, world::World};
+use game::animation::{AnimationComponent, Animation};
+use game::geometry::{PositionComponent, Rect};
 use sdl2::{event::Event, image::InitFlag, keyboard::Keycode};
 
 fn main() {
@@ -29,56 +34,9 @@ fn main() {
     let mut texture_manager = TextureManager::new(&texture_creator);
 
     // Load Game Data
-    let world_map = WorldMap::new();
-    let mut world = World::new(world_map);
+    let mut world = load_world_from_yaml("./game.yaml", &mut texture_manager).unwrap();
 
-    // Example loading
-    let tex0 = texture_manager.load_texture("./assets/0.png");
-    let tex1 = texture_manager.load_texture("./assets/1.png");
-    let tex2 = texture_manager.load_texture("./assets/3.png");
-    let tex3 = texture_manager.load_texture("./assets/4.png");
-    let tex4 = texture_manager.load_texture("./assets/5.png");
-    let tex5 = texture_manager.load_texture("./assets/6.png");
-    let tex6 = texture_manager.load_texture("./assets/walk.png");
-    let tex7 = texture_manager.load_texture("./assets/collide.png");
-    let box_tex = texture_manager.load_texture("./assets/box.png");
-
-    let idle_animation = Animation::new(
-        vec![tex0, tex1, tex2, tex3, tex4, tex5, tex4, tex3, tex2, tex1],
-        0.05,
-    );
-
-    let walking_animation = Animation::new(
-        vec![tex6],
-        10.0,
-    );
-
-    let collide_animation = Animation::new(
-        vec![tex7],
-        10.0
-    );
-
-    let mut a_map = HashMap::new();
-    a_map.insert("idle".into(), idle_animation);
-    a_map.insert("walking".into(), walking_animation);
-    a_map.insert("colliding".into(), collide_animation);
-
-    let test = world.add_entity(
-        Some(GeometryComponent::new(0.0, 0.0, 20, 20)),
-        Some(PhysicsComponent::new(2, true)),
-        Some(GraphicsComponent::new(tex1)),
-        Some(AnimationComponent::new(a_map))
-    );
-
-    world.add_entity_state(test, "idle".to_string());
-    world.player_id = Some(test);
-
-    world.add_entity(
-        Some(GeometryComponent::new(30.0, 30.0, 30, 30)),
-        Some(PhysicsComponent::new(20, false)),
-        Some(GraphicsComponent::new(box_tex)),
-        None
-    );
+    println!("{:?}", world.animations);
 
     // Create Game Systems
     let mut input_system = InputSystem::new(
@@ -114,3 +72,135 @@ fn main() {
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
+
+fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Result<World, Box<dyn Error>> {
+    let world_map = WorldMap::new();
+    let mut world = World::new(world_map);
+
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+    let mut contents = String::new();
+    reader.read_to_string(&mut contents)?;
+
+    let docs = YamlLoader::load_from_str(&contents)?;
+    let doc = &docs[0];
+
+    let mut texture_map: HashMap<String, usize> = HashMap::new();
+
+    for entity in doc["entities"].as_vec().unwrap_or(&Vec::new()) {
+        // Default starting states
+        let state = entity["state"].as_str();
+        let player = entity["player"].as_bool().unwrap_or(false);
+
+        // Parse position
+        let position = {
+            let x = entity["position"]["x"].as_f64().map(|e| e as f32);
+            let y = entity["position"]["y"].as_f64().map(|e| e as f32);
+
+            if x.is_none() || y.is_none() {
+                None
+            } else {
+                Some(PositionComponent::new(x.unwrap(), y.unwrap()))
+            }
+        };
+
+        // Parse physics
+        let physics = {
+            let depth = entity["physics"]["depth"].as_i64().map(|e| e as u32);
+            let physical = entity["physics"]["physical"].as_bool();
+
+            let hitbox_x = entity["physics"]["hitbox"]["x"].as_f64().map(|e| e as f32);
+            let hitbox_y = entity["physics"]["hitbox"]["y"].as_f64().map(|e| e as f32);
+            let hitbox_w = entity["physics"]["hitbox"]["w"].as_i64().map(|e| e as u32);
+            let hitbox_h = entity["physics"]["hitbox"]["h"].as_i64().map(|e| e as u32);
+
+            if hitbox_w.is_none() || hitbox_h.is_none() {
+                None
+            } else {
+                let hitbox = Rect::new(hitbox_x.unwrap_or(0.0), hitbox_y.unwrap_or(0.0), hitbox_w.unwrap(), hitbox_h.unwrap());
+                Some(PhysicsComponent::new(hitbox, depth.unwrap_or(0), physical.unwrap_or(true)))
+            }
+        };
+
+        // Parse graphics
+        let graphics = {
+            let texture_path = entity["graphics"]["texture"].as_str().map(|e| e.to_string());
+
+            let renderbox_x = entity["graphics"]["renderbox"]["x"].as_f64().map(|e| e as f32);
+            let renderbox_y = entity["graphics"]["renderbox"]["y"].as_f64().map(|e| e as f32);
+            let renderbox_w = entity["graphics"]["renderbox"]["w"].as_i64().map(|e| e as u32);
+            let renderbox_h = entity["graphics"]["renderbox"]["h"].as_i64().map(|e| e as u32);
+
+            if let Some(texture_path) = texture_path {
+                let tex_id = texture_map.get(&texture_path).map(|e| *e).unwrap_or_else(|| {
+                    let id = &texture_manager.load_texture(&texture_path);
+                    texture_map.insert(texture_path, *id);
+                    *id
+                });
+
+                if renderbox_w.is_none() || renderbox_h.is_none() {
+                    None
+                } else {
+                    let renderbox = Rect::new(renderbox_x.unwrap_or(0.0), renderbox_y.unwrap_or(0.0), renderbox_w.unwrap(), renderbox_h.unwrap());
+                    Some(GraphicsComponent::new(tex_id, renderbox))
+                }
+            } else {
+                None
+            }
+        };
+
+        // Parse animations
+        let animations = {
+            let mut animations = HashMap::new();
+
+            let a_iter = entity["animations"].as_vec();
+            if a_iter.is_none() {
+                None
+            } else {
+                for animation in a_iter.unwrap() {
+                    let state = animation["animation"]["state"].as_str();
+                    let period = animation["animation"]["period"].as_f64().map(|e| e as f32);
+                    let textures = animation["animation"]["textures"].as_vec();
+
+                    if state.is_none() || period.is_none() || textures.is_none() {
+                        continue;
+                    }
+
+                    let textures: Vec<usize> = textures.unwrap().iter()
+                        .filter_map(|path| {
+                            path.as_str().map(|e| {
+                                if let Some(tex_id) = texture_map.get(e) {
+                                    *tex_id
+                                } else {
+                                    let tex_id = &texture_manager.load_texture(e);
+                                    texture_map.insert(e.to_string(), *tex_id);
+                                    *tex_id
+                                }
+                            })
+                        })
+                        .collect();
+
+                    let a = Animation::new(textures, period.unwrap());
+                    animations.insert(state.unwrap().to_string(), a);
+                }
+
+                Some(AnimationComponent::new(animations))
+            }
+        };
+
+        println!("{:?}", animations);
+
+        let id = world.add_entity(position, physics, graphics, animations);
+
+        if state.is_some() {
+            world.add_entity_state(id, state.unwrap().to_string());
+        }
+
+        if player {
+            world.player_id = Some(id);
+        }
+    }
+
+    Ok(world)
+}
+

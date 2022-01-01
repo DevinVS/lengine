@@ -2,6 +2,7 @@ use crate::world::World;
 use std::time::Instant;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Animation {
     textures: Vec<usize>,
     period: f32,
@@ -36,6 +37,7 @@ impl Animation {
     }
 }
 
+#[derive(Debug)]
 pub struct AnimationComponent {
     animations: HashMap<String, Animation>,
     curr_key: Option<String>

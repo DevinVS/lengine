@@ -12,3 +12,4 @@ path = "src/lib.rs"
 [dependencies]
 sdl2 = {version="*", features=["image"]}
 itertools = "*"
+yaml-rust = "0.4"

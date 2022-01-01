@@ -1,21 +1,24 @@
 use std::f32::consts::FRAC_PI_2;
-use crate::{vector::Vector, world::World, geometry::GeometryComponent};
+use crate::{vector::Vector, world::World, geometry::PositionComponent};
 use std::time::Instant;
 use std::collections::HashSet;
+use crate::geometry::Rect;
 
-
+#[derive(Debug)]
 pub struct PhysicsComponent {
     pub depth: u32,
     pub velocity: Vector,
-    physical: bool
+    physical: bool,
+    pub hitbox: Rect
 }
 
 impl PhysicsComponent {
-    pub fn new(depth: u32, physical: bool) -> PhysicsComponent {
+    pub fn new(hitbox: Rect, depth: u32, physical: bool) -> PhysicsComponent {
         PhysicsComponent {
             depth,
             velocity: Vector::zero(),
-            physical
+            physical,
+            hitbox
         }
     }
 }
@@ -37,17 +40,18 @@ impl PhysicsSystem {
 
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
-        let mut entities: Vec<(usize, (&mut HashSet<String>, &mut GeometryComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
+        let mut entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
 
         for i in 0..entities.len() {
             // Apply final velocities
             let t = self.last_tick.elapsed().as_secs_f32();
             let mut delta_vec = entities[i].1.2.velocity * t;
 
-            let rect = entities[i].1.1.rect().clone();
-
             let depth = entities[i].1.2.depth;
-            let footprint = rect.clone().after_depth(depth);
+
+            let footprint = entities[i].1.2.hitbox
+                .after_position(entities[i].1.1)
+                .after_depth(depth);
 
             let mut after_x = footprint.clone();
             let mut after_y = footprint.clone();
@@ -62,10 +66,10 @@ impl PhysicsSystem {
                 // If we are compareing the same rectangle skip
                 if i==j {continue;}
 
-                let other_rect = entities[j].1.1.rect().clone();
                 let other_depth = entities[j].1.2.depth;
-
-                let other_footprint = other_rect.clone().after_depth(other_depth);
+                let other_footprint = entities[j].1.2.hitbox
+                    .after_position(entities[j].1.1)
+                    .after_depth(other_depth);
 
                 let x_collision = after_x.has_intersection(other_footprint);
                 let y_collision = after_y.has_intersection(other_footprint);
@@ -93,7 +97,7 @@ impl PhysicsSystem {
                 entities[i].1.0.remove(&"colliding".to_string());
             }
 
-            entities[i].1.1.rect_mut().apply_vector(delta_vec);
+            entities[i].1.1.apply_vector(delta_vec);
         }
 
         self.last_tick = Instant::now();

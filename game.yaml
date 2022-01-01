@@ -1,0 +1,58 @@
+entities:
+  - player: true
+    position:
+      x: 0.0
+      y: 0.0
+    physics:
+      hitbox:
+        x: 12.0
+        y: 24.0
+        w: 8
+        h: 8
+      depth: 2
+    graphics:
+      texture: "./assets/0.png"
+      renderbox:
+        w: 32
+        h: 32
+    animations:
+      - animation:
+          state: "idle"
+          period: 0.1
+          textures:
+            - "./assets/0.png"
+            - "./assets/1.png"
+            - "./assets/2.png"
+            - "./assets/3.png"
+            - "./assets/4.png"
+            - "./assets/5.png"
+            - "./assets/6.png"
+            - "./assets/5.png"
+            - "./assets/4.png"
+            - "./assets/3.png"
+            - "./assets/2.png"
+            - "./assets/1.png"
+      - animation:
+          state: "walking"
+          period: 1.0
+          textures:
+            - "./assets/walk.png"
+      - animation:
+          state: "colliding"
+          period: 1.0
+          textures:
+            - "./assets/collide.png"
+  - position:
+      x: 30.0
+      y: 30.0
+    physics:
+      hitbox:
+        w: 50
+        h: 50
+      depth: 50
+    graphics:
+      texture: "./assets/box.png"
+      renderbox:
+        w: 50
+        h: 50
+

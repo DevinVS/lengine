@@ -5,21 +5,25 @@ use sdl2::video::{Window, WindowContext};
 use sdl2::image::LoadTexture;
 use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
-use crate::geometry::{GeometryComponent, Rect};
+use crate::animation::AnimationComponent;
+use crate::geometry::PositionComponent;
+use crate::physics::PhysicsComponent;
 use crate::world::World;
+use crate::geometry::Rect;
 
+#[derive(Debug)]
 pub struct GraphicsComponent {
     pub texture_id: usize,
-    pub offset: (f32, f32, i32, i32),
+    pub renderbox: Rect,
     pub flipped: bool,
 }
 
 impl GraphicsComponent {
-    pub fn new(tex_id: usize) -> GraphicsComponent {
+    pub fn new(tex_id: usize, renderbox: Rect) -> GraphicsComponent {
         GraphicsComponent {
             texture_id: tex_id,
             flipped: false,
-            offset: (0.0, 0.0, 0, 0)
+            renderbox
         }
     }
 }
@@ -79,21 +83,16 @@ impl<'a> GraphicsSystem<'a> {
     }
 
     // Make the Camera follow the entity
-    fn follow(&mut self, entity: (&GeometryComponent, &GraphicsComponent)) {
+    fn follow(&mut self, entity: (&PositionComponent, &GraphicsComponent)) {
     }
 
     // Draw an entity based on its position and texture
-    pub fn draw_entity(&mut self, entity: (&HashSet<String>, &GeometryComponent, &GraphicsComponent)) {
+    pub fn draw_entity(&mut self, entity: (&HashSet<String>, &PositionComponent, &GraphicsComponent), physics: Option<&PhysicsComponent>) {
         let tex_id = entity.2.texture_id;
         let flipped = entity.2.flipped;
         let texture = self.texture_manager.get_texture(tex_id).unwrap();
 
-        let mut entity_rect = entity.1.rect().clone();
-        entity_rect.x -= self.camera.x as f32 + entity.2.offset.0;
-        entity_rect.y -= self.camera.y as f32 + entity.2.offset.1;
-
-        entity_rect.w = (entity_rect.w as i32 + entity.2.offset.2) as u32;
-        entity_rect.h = (entity_rect.h as i32 + entity.2.offset.3) as u32;
+        let mut entity_rect = entity.2.renderbox.after_position(entity.1);
 
         entity_rect.x *= self.camera.zoom as f32;
         entity_rect.y *= self.camera.zoom as f32;
@@ -101,6 +100,20 @@ impl<'a> GraphicsSystem<'a> {
         entity_rect.h *= self.camera.zoom;
 
         self.canvas.copy_ex(texture, None, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
+
+        // Draw hitbox
+        if physics.is_some() {
+            let mut hitbox = physics.unwrap().hitbox.after_position(entity.1);
+
+            hitbox.x *= self.camera.zoom as f32;
+            hitbox.y *= self.camera.zoom as f32;
+            hitbox.w *= self.camera.zoom;
+            hitbox.h *= self.camera.zoom;
+
+            self.canvas.set_draw_color((255, 0, 0));
+            self.canvas.draw_rect(hitbox.sdl2()).unwrap();
+            self.canvas.set_draw_color((0, 0, 0));
+        }
     }
 
     // Run the system
@@ -111,16 +124,18 @@ impl<'a> GraphicsSystem<'a> {
         //     self.follow(&player);
         // }
 
-        let mut drawables: Vec<(usize, (_, &GeometryComponent, &GraphicsComponent))> = world.graphics().collect();
+        let mut drawables: Vec<(usize, (_, &PositionComponent, &GraphicsComponent))> = world.graphics().collect();
+
 
         drawables.sort_by_key(|e| {
-            let r = e.1.1.rect();
+            let r = e.1.2.renderbox.after_position(e.1.1);
             r.y as i32+r.h as i32
         });
 
 
         drawables.iter().for_each(|e| {
-            self.draw_entity(e.1);
+            let physics = world.get_entity_physics(e.0);
+            self.draw_entity(e.1, physics.1);
         });
 
         self.canvas.present();
