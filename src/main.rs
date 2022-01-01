@@ -124,12 +124,17 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
 
         // Parse graphics
         let graphics = {
-            let texture_path = entity["graphics"]["texture"].as_str().map(|e| e.to_string());
+            let texture_path = entity["graphics"]["path"].as_str().map(|e| e.to_string());
 
             let renderbox_x = entity["graphics"]["renderbox"]["x"].as_f64().map(|e| e as f32);
             let renderbox_y = entity["graphics"]["renderbox"]["y"].as_f64().map(|e| e as f32);
             let renderbox_w = entity["graphics"]["renderbox"]["w"].as_i64().map(|e| e as u32);
             let renderbox_h = entity["graphics"]["renderbox"]["h"].as_i64().map(|e| e as u32);
+
+            let srcbox_x = entity["graphics"]["srcbox"]["x"].as_i64().map(|e| e as i32);
+            let srcbox_y = entity["graphics"]["srcbox"]["y"].as_i64().map(|e| e as i32);
+            let srcbox_w = entity["graphics"]["srcbox"]["w"].as_i64().map(|e| e as u32);
+            let srcbox_h = entity["graphics"]["srcbox"]["h"].as_i64().map(|e| e as u32);
 
             if let Some(texture_path) = texture_path {
                 let tex_id = texture_map.get(&texture_path).map(|e| *e).unwrap_or_else(|| {
@@ -141,8 +146,14 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
                 if renderbox_w.is_none() || renderbox_h.is_none() {
                     None
                 } else {
+                    let srcbox = if srcbox_x.is_none() || srcbox_y.is_none() || srcbox_w.is_none() || srcbox_h.is_none() {
+                        None
+                    } else {
+                        Some(sdl2::rect::Rect::new(srcbox_x.unwrap(), srcbox_y.unwrap(), srcbox_w.unwrap(), srcbox_h.unwrap()))
+                    };
+
                     let renderbox = Rect::new(renderbox_x.unwrap_or(0.0), renderbox_y.unwrap_or(0.0), renderbox_w.unwrap(), renderbox_h.unwrap());
-                    Some(GraphicsComponent::new(tex_id, renderbox))
+                    Some(GraphicsComponent::new(tex_id, renderbox, srcbox))
                 }
             } else {
                 None
@@ -166,9 +177,21 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
                         continue;
                     }
 
-                    let textures: Vec<usize> = textures.unwrap().iter()
-                        .filter_map(|path| {
-                            path.as_str().map(|e| {
+                    let textures: Vec<(usize, Option<sdl2::rect::Rect>)> = textures.unwrap().iter()
+                        .filter_map(|texture| {
+                            let path = texture["path"].as_str();
+                            let srcbox_x = texture["srcbox"]["x"].as_i64().map(|e| e as i32);
+                            let srcbox_y = texture["srcbox"]["y"].as_i64().map(|e| e as i32);
+                            let srcbox_w = texture["srcbox"]["w"].as_i64().map(|e| e as u32);
+                            let srcbox_h = texture["srcbox"]["h"].as_i64().map(|e| e as u32);
+
+                            let srcbox = if srcbox_x.is_none() || srcbox_y.is_none() || srcbox_w.is_none() || srcbox_h.is_none() {
+                                None
+                            } else {
+                                Some(sdl2::rect::Rect::new(srcbox_x.unwrap(), srcbox_y.unwrap(), srcbox_w.unwrap(), srcbox_h.unwrap()))
+                            };
+
+                            let tex_id = path.map(|e| {
                                 if let Some(tex_id) = texture_map.get(e) {
                                     *tex_id
                                 } else {
@@ -176,7 +199,14 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
                                     texture_map.insert(e.to_string(), *tex_id);
                                     *tex_id
                                 }
-                            })
+                            });
+
+                            if tex_id.is_none() {
+                                None
+                            } else {
+                                Some((tex_id.unwrap(), srcbox))
+                            }
+
                         })
                         .collect();
 
@@ -188,10 +218,7 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
             }
         };
 
-        println!("{:?}", animations);
-
         let id = world.add_entity(position, physics, graphics, animations);
-
         if state.is_some() {
             world.add_entity_state(id, state.unwrap().to_string());
         }

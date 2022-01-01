@@ -4,16 +4,16 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Animation {
-    textures: Vec<usize>,
+    states: Vec<(usize, Option<sdl2::rect::Rect>)>,
     period: f32,
     curr_tex_index: usize,
     last_switch: Instant
 }
 
 impl Animation {
-    pub fn new(textures: Vec<usize>, period: f32) -> Animation {
+    pub fn new(states: Vec<(usize, Option<sdl2::rect::Rect>)>, period: f32) -> Animation {
         Animation {
-            textures,
+            states,
             period,
             curr_tex_index: 0,
             last_switch: Instant::now()
@@ -22,7 +22,7 @@ impl Animation {
 
     fn tick(&mut self) {
         if self.last_switch.elapsed().as_secs_f32() > self.period {
-            if self.curr_tex_index == self.textures.len()-1 {
+            if self.curr_tex_index == self.states.len()-1 {
                 self.curr_tex_index = 0;
             } else {
                 self.curr_tex_index += 1;
@@ -33,7 +33,11 @@ impl Animation {
     }
 
     fn current_texture(&self) -> usize {
-        self.textures[self.curr_tex_index]
+        self.states[self.curr_tex_index].0
+    }
+
+    fn current_srcbox(&self) -> Option<sdl2::rect::Rect> {
+        self.states[self.curr_tex_index].1
     }
 }
 
@@ -87,6 +91,7 @@ impl AnimationSystem {
             if let Some(animation) = animations.current_mut() {
                 animation.tick();
                 graphics.texture_id = animation.current_texture();
+                graphics.srcbox = animation.current_srcbox();
 
                 if animation.curr_tex_index == 0 {
                     animations.curr_key = None;
@@ -101,6 +106,7 @@ impl AnimationSystem {
 
                     animation.tick();
                     graphics.texture_id = animation.current_texture();
+                    graphics.srcbox = animation.current_srcbox();
                     animations.curr_key = Some(state.clone());
                     break;
                 }

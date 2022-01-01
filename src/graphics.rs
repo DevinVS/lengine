@@ -14,16 +14,18 @@ use crate::geometry::Rect;
 #[derive(Debug)]
 pub struct GraphicsComponent {
     pub texture_id: usize,
+    pub srcbox: Option<sdl2::rect::Rect>,
     pub renderbox: Rect,
     pub flipped: bool,
 }
 
 impl GraphicsComponent {
-    pub fn new(tex_id: usize, renderbox: Rect) -> GraphicsComponent {
+    pub fn new(tex_id: usize, renderbox: Rect, srcbox: Option<sdl2::rect::Rect>) -> GraphicsComponent {
         GraphicsComponent {
             texture_id: tex_id,
             flipped: false,
-            renderbox
+            renderbox,
+            srcbox
         }
     }
 }
@@ -99,7 +101,7 @@ impl<'a> GraphicsSystem<'a> {
         entity_rect.w *= self.camera.zoom;
         entity_rect.h *= self.camera.zoom;
 
-        self.canvas.copy_ex(texture, None, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
+        self.canvas.copy_ex(texture, entity.2.srcbox, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
 
         // Draw hitbox
         if physics.is_some() {
