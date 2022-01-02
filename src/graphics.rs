@@ -114,7 +114,7 @@ impl<'a> GraphicsSystem<'a> {
 
             self.canvas.set_draw_color((255, 0, 0));
             self.canvas.draw_rect(hitbox.sdl2()).unwrap();
-            self.canvas.set_draw_color((0, 0, 0));
+            self.canvas.set_draw_color((255, 255, 255));
         }
     }
 
@@ -134,12 +134,11 @@ impl<'a> GraphicsSystem<'a> {
             r.y as i32+r.h as i32
         });
 
-
+        // Draw Entities
         drawables.iter().for_each(|e| {
             let physics = world.get_entity_physics(e.0);
             self.draw_entity(e.1, physics.1);
         });
-
         self.canvas.present();
     }
 }

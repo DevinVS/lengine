@@ -47,6 +47,8 @@ fn main() {
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let mut event_pump = sdl2_context.event_pump().unwrap();
 
+    canvas.set_draw_color((255, 255, 255));
+
     let texture_creator = canvas.texture_creator();
     let mut texture_manager = TextureManager::new(&texture_creator);
 
@@ -237,7 +239,7 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
             }
         };
 
-        let id = world.add_entity(position, physics, graphics, animations);
+        let id = world.add_entity(position, physics, graphics, animations, None);
         if state.is_some() {
             world.add_entity_state(id, state.unwrap().to_string());
         }

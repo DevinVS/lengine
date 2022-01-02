@@ -7,7 +7,6 @@ use crate::geometry::PositionComponent;
 use crate::physics::PhysicsComponent;
 use crate::graphics::GraphicsComponent;
 use crate::animation::AnimationComponent;
-use crate::state::ActionComponent;
 
 // Struct containing all game data and current state
 pub struct World {
@@ -21,8 +20,7 @@ pub struct World {
     pub positions: Vec<Option<PositionComponent>>,
     pub physics: Vec<Option<PhysicsComponent>>,
     pub graphics: Vec<Option<GraphicsComponent>>,
-    pub animations: Vec<Option<AnimationComponent>>,
-    pub actions: Vec<Option<ActionComponent>>,
+    pub animations: Vec<Option<AnimationComponent>>
 }
 
 impl World {
@@ -34,8 +32,7 @@ impl World {
             positions: Vec::new(),
             physics: Vec::new(),
             graphics: Vec::new(),
-            animations: Vec::new(),
-            actions: Vec::new()
+            animations: Vec::new()
         }
     }
     // Add an entity to the entity manager
@@ -44,14 +41,12 @@ impl World {
         physics: Option<PhysicsComponent>,
         graphics: Option<GraphicsComponent>,
         animation: Option<AnimationComponent>,
-        actions: Option<ActionComponent>
     ) -> usize {
         self.states.push(HashSet::new());
         self.positions.push(position);
         self.physics.push(physics);
         self.graphics.push(graphics);
         self.animations.push(animation);
-        self.actions.push(actions);
 
         self.states.len()-1
     }
@@ -69,10 +64,10 @@ impl World {
         &mut self.states[id]
     }
 
-    pub fn all_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, Option<&mut PositionComponent>, Option<&mut PhysicsComponent>, Option<&mut GraphicsComponent>, Option<&mut AnimationComponent>, Option<&mut ActionComponent>))> {
-        izip!(self.states.iter_mut(), self.positions.iter_mut(), self.physics.iter_mut(), self.graphics.iter_mut(), self.animations.iter_mut(), self.actions.iter_mut())
+    pub fn all_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, Option<&mut PositionComponent>, Option<&mut PhysicsComponent>, Option<&mut GraphicsComponent>, Option<&mut AnimationComponent>))> {
+        izip!(self.states.iter_mut(), self.position.iter_mut(), self.physics.iter_mut(), self.graphics.iter_mut(), self.animations.iter_mut())
             .enumerate()
-            .map(|e| (e.0, (e.1.0, e.1.1.as_mut(), e.1.2.as_mut(), e.1.3.as_mut(), e.1.4.as_mut(), e.1.5.as_mut())))
+            .map(|e| (e.0, (e.1.0, e.1.1.as_mut())))
     }
 
     pub fn positions(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent))> {

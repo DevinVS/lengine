@@ -2,37 +2,18 @@ entities:
   - position:
       x: 0.0
       y: 0.0
-    state: "idle"
+    player: true
+    physics:
+      hitbox:
+        w: 16
+        h: 16
     graphics:
-      path: "./assets/anim.png"
+      path: "./assets/ginny.png"
       renderbox:
-        w: 32
-        h: 32
+        w: 16
+        h: 16
       srcbox:
         x: 0
         y: 0
-        w: 32
-        h: 32
-    animations:
-      - animation:
-          state: "idle"
-          period: 1.0
-          textures:
-            - path: "./assets/anim.png"
-              srcbox:
-                x: 0
-                y: 0
-                w: 32
-                h: 32
-            - path: "./assets/anim.png"
-              srcbox:
-                x: 32
-                y: 0
-                w: 32
-                h: 32
-            - path: "./assets/anim.png"
-              srcbox:
-                x: 64
-                y: 0
-                w: 32
-                h: 32
+        w: 16
+        h: 16
