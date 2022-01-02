@@ -1,19 +1,43 @@
-use crate::world::World;
+use std::time::Instant;
+use crate::{geometry::Rect, world::World};
 
-pub enum Effect {
-    
+#[derive(Clone)]
+pub struct Effect {
+    pub name: String,
+    created: Instant,
+    ttl: Option<f32>,
+    pub rect: Rect
 }
 
-pub struct EffectsSystem {
-    
+impl Effect {
+    pub fn new(name: String, rect: Rect, ttl: Option<f32>) -> Effect {
+        Effect {
+            name,
+            ttl,
+            rect,
+            created: Instant::now()
+        }
+    }
+
+    pub fn finished(&self) -> bool {
+        if self.ttl.is_none() { return false; }
+        self.created.elapsed().as_secs_f32() > self.ttl.unwrap()
+    }
 }
 
-impl EffectsSystem {
-    pub fn new() -> EffectsSystem {
-        EffectsSystem {}
+pub struct EffectSystem;
+
+impl EffectSystem {
+    pub fn new() -> EffectSystem {
+        EffectSystem {}
     }
 
     pub fn run(&mut self, world: &mut World) {
-        
+        world.effects = world.effects.iter()
+            .filter(|e| e.finished())
+            .map(|e| e.clone())
+            .collect();
+
+        world.apply_effects();
     }
 }

@@ -22,7 +22,7 @@ use game::geometry::{PositionComponent, Rect};
 use game::physics::{PhysicsSystem, PhysicsComponent};
 use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager};
 use game::animation::{AnimationSystem, AnimationComponent, Animation};
-use game::effect::EffectsSystem;
+use game::effect::EffectSystem;
 
 fn main() {
     // Code for watching changes
@@ -40,7 +40,7 @@ fn main() {
     // Create graphics objects such as window, canvas, and texture manager
     let window = video_subsystem.window("title", 800, 600)
         .vulkan()
-        .resizable()
+        .maximized()
         .build()
         .unwrap();
 
@@ -58,7 +58,7 @@ fn main() {
     // Create Game Systems
     let mut input_system = InputSystem::new(controller_subsystem);
     let mut physics_system = PhysicsSystem::new();
-    let mut effects_system = EffectsSystem::new();
+    let mut effects_system = EffectSystem::new();
     let mut animation_system = AnimationSystem::new();
     let mut graphics_system = GraphicsSystem::new(texture_manager, &mut canvas);
 

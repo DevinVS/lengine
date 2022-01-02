@@ -8,6 +8,7 @@ use crate::physics::PhysicsComponent;
 use crate::graphics::GraphicsComponent;
 use crate::animation::AnimationComponent;
 use crate::state::ActionComponent;
+use crate::effect::Effect;
 
 // Struct containing all game data and current state
 pub struct World {
@@ -15,6 +16,8 @@ pub struct World {
     map: WorldMap,
     // Player / Currently controlled entity id
     pub player_id: Option<usize>,
+
+    pub effects: Vec<Effect>,
 
     // Properties for each entity
     pub states: Vec<HashSet<String>>,
@@ -35,7 +38,8 @@ impl World {
             physics: Vec::new(),
             graphics: Vec::new(),
             animations: Vec::new(),
-            actions: Vec::new()
+            actions: Vec::new(),
+            effects: Vec::new()
         }
     }
     // Add an entity to the entity manager
@@ -54,6 +58,25 @@ impl World {
         self.actions.push(actions);
 
         self.states.len()-1
+    }
+
+    pub fn apply_effects(&mut self) {
+        for i in 0..self.states.len() {
+            if self.positions[i].is_some() && self.physics[i].is_some() {
+                let footprint = self.physics[i].as_ref().unwrap().hitbox
+                    .after_position(&self.positions[i].as_ref().unwrap())
+                    .after_depth(self.physics[i].as_ref().unwrap().depth);
+
+                for j in 0..self.effects.len() {
+                    let effect_rect = self.effects[j].rect;
+                    let effect_name = self.effects[j].name.clone();
+
+                    if footprint.has_intersection(effect_rect) {
+                        self.states[i].insert(effect_name);
+                    }
+                }
+            }
+        }
     }
 
     // Iterators over common properties of entities
