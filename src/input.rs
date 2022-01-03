@@ -115,6 +115,8 @@ impl InputSystem {
 
                 let mut vel = Vector::from_components(x, y);
 
+                if vel.mag > 1.0 {vel.mag=1.0;}
+
                 vel.mag *= max_mag;
                 physics_state.velocity = vel;
 
