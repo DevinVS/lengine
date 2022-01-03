@@ -21,7 +21,7 @@ use game::world::World;
 use game::input::InputSystem;
 use game::geometry::{PositionComponent, Rect};
 use game::physics::{PhysicsSystem, PhysicsComponent};
-use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager};
+use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager, Camera};
 use game::animation::{AnimationSystem, AnimationComponent, Animation};
 use game::effect::EffectSystem;
 use game::actions::{ShowDialog, AddState, RemoveState, Action};
@@ -330,20 +330,38 @@ fn graphics_system_from_yaml<'a>(doc: &Yaml, texture_manager: TextureManager<'a>
     let dialog_y = doc["graphics"]["dialog"]["renderbox"]["y"].as_i64().map(|e| e as i32);
     let dialog_w = doc["graphics"]["dialog"]["renderbox"]["w"].as_i64().map(|e| e as u32);
     let dialog_h = doc["graphics"]["dialog"]["renderbox"]["h"].as_i64().map(|e| e as u32);
+
     let text_x = doc["graphics"]["dialog"]["textbox"]["x"].as_i64().map(|e| e as i32);
     let text_y = doc["graphics"]["dialog"]["textbox"]["y"].as_i64().map(|e| e as i32);
     let text_w = doc["graphics"]["dialog"]["textbox"]["w"].as_i64().map(|e| e as u32);
     let text_h = doc["graphics"]["dialog"]["textbox"]["h"].as_i64().map(|e| e as u32);
+
     let font = doc["graphics"]["dialog"]["font"].as_str();
     let fontsize = doc["graphics"]["dialog"]["fontsize"].as_i64().unwrap_or(12) as u16;
 
-    if dialog_path.is_some() && dialog_x.is_some() && dialog_y.is_some() && dialog_w.is_some() && dialog_h.is_some() && text_x.is_some() && text_y.is_some() && text_w.is_some() && text_h.is_some() && font.is_some() {
+    let cam_x = doc["graphics"]["camera"]["x"].as_f64().map(|e| e as f32);
+    let cam_y = doc["graphics"]["camera"]["y"].as_f64().map(|e| e as f32);
+    let cam_w = doc["graphics"]["camera"]["w"].as_i64().map(|e| e as u32);
+    let cam_h = doc["graphics"]["camera"]["h"].as_i64().map(|e| e as u32);
+    let cam_zoom = doc["graphics"]["camera"]["zoom"].as_i64().map(|e| e as u32);
+
+    if dialog_path.is_some() && dialog_x.is_some() && dialog_y.is_some() && dialog_w.is_some() && dialog_h.is_some() && text_x.is_some() && text_y.is_some() && text_w.is_some() && text_h.is_some() && font.is_some() && cam_x.is_some() && cam_y.is_some() && cam_w.is_some() && cam_h.is_some() && cam_zoom.is_some() {
+        // Handle Dialog configuration
         let tex_id = gs.texture_manager.load_texture(dialog_path.unwrap());
         let renderbox = sdl2::rect::Rect::new(dialog_x.unwrap(), dialog_y.unwrap(), dialog_w.unwrap(), dialog_h.unwrap());
         let textbox = sdl2::rect::Rect::new(text_x.unwrap(), text_y.unwrap(), text_w.unwrap(), text_h.unwrap());
-
         let font = ttf_context.load_font(font.unwrap(), fontsize).unwrap();
         gs.dialog = Some((tex_id, renderbox, textbox, font));
+
+        // Camera configuration
+        let cam = Camera {
+            x: cam_x.unwrap(),
+            y: cam_y.unwrap(),
+            w: cam_w.unwrap(),
+            h: cam_h.unwrap(),
+            zoom: cam_zoom.unwrap()
+        };
+        gs.camera = cam;
     }
 
     gs

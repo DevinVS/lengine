@@ -1,4 +1,10 @@
 graphics:
+  camera:
+    x: 0.0
+    y: 0.0
+    w: 800
+    h: 600
+    zoom: 5
   dialog:
     path: "./assets/dialog.png"
     font: "./assets/PressStart2P-vaV7.ttf"

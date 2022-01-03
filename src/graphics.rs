@@ -41,15 +41,15 @@ impl GraphicsComponent {
 /// Camera to view the game world through
 pub struct Camera {
     /// x coordinate of the camera in the game world
-    x: f32,
+    pub x: f32,
     /// y coordinate of the camera in the game world
-    y: f32,
+    pub y: f32,
     /// Width of the camera in actual screen pixels
-    w: u32,
+    pub w: u32,
     /// Height of the camera in actual screen pixels
-    h: u32,
+    pub h: u32,
     /// Pixel scaling factor, ie conversion factor between world units and screen pixels
-    zoom: u32
+    pub zoom: u32
 }
 
 impl Camera {
@@ -129,7 +129,7 @@ pub struct GraphicsSystem<'a> {
     /// Rendering surface, does all drawing
     canvas: &'a mut Canvas<Window>,
     /// Camera to view the world through
-    camera: Camera,
+    pub camera: Camera,
     /// Display debug information such as hitboxes
     pub debug: bool,
     /// Currently rendered dialog box
