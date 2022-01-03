@@ -4,15 +4,21 @@ use std::time::Instant;
 use std::collections::HashSet;
 use crate::geometry::Rect;
 
+/// Physics information for a single entity
 #[derive(Debug)]
 pub struct PhysicsComponent {
+    /// An Entities actual physical depth
     pub depth: u32,
+    /// Velocity in pixels/second
     pub velocity: Vector,
+    /// Whether this object is physical and thus stops other physical objects
     physical: bool,
+    /// Hitbox of the entity
     pub hitbox: Rect
 }
 
 impl PhysicsComponent {
+    /// Create a new PhysicsComponent
     pub fn new(hitbox: Rect, depth: u32, physical: bool) -> PhysicsComponent {
         PhysicsComponent {
             depth,
@@ -23,17 +29,20 @@ impl PhysicsComponent {
     }
 }
 
+/// System for handling physics interactions
 pub struct PhysicsSystem {
     last_tick: Instant
 }
 
 impl PhysicsSystem {
+    /// Create a new PhysicsSystem
     pub fn new() -> PhysicsSystem {
         PhysicsSystem {
             last_tick: Instant::now()
         }
     }
 
+    /// Handle collisions with other entities and apply relevant velocites
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
         let mut entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = world.physics_mut().collect();

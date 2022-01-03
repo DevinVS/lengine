@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
@@ -14,15 +13,21 @@ use crate::physics::PhysicsComponent;
 use crate::world::World;
 use crate::geometry::Rect;
 
+/// Component for rendering a single entity
 #[derive(Debug)]
 pub struct GraphicsComponent {
+    /// Index of the texture to render
     pub texture_id: usize,
+    /// Source coordinates for the texture
     pub srcbox: Option<sdl2::rect::Rect>,
+    /// Coordinates to render inside the game world
     pub renderbox: Rect,
+    /// Whether to flip the texture
     pub flipped: bool
 }
 
 impl GraphicsComponent {
+    /// Create a new GraphicsComponent
     pub fn new(tex_id: usize, renderbox: Rect, srcbox: Option<sdl2::rect::Rect>) -> GraphicsComponent {
         GraphicsComponent {
             texture_id: tex_id,
@@ -33,15 +38,22 @@ impl GraphicsComponent {
     }
 }
 
+/// Camera to view the game world through
 pub struct Camera {
+    /// x coordinate of the camera in the game world
     x: f32,
+    /// y coordinate of the camera in the game world
     y: f32,
+    /// Width of the camera in actual screen pixels
     w: u32,
+    /// Height of the camera in actual screen pixels
     h: u32,
-    zoom: u32   // Pixels per in game units
+    /// Pixel scaling factor, ie conversion factor between world units and screen pixels
+    zoom: u32
 }
 
 impl Camera {
+    /// Find the new rectangle with respect to the view of the camera
     fn view(&self, rect: Rect, (width, height): (u32, u32)) -> Rect {
         let screen_x = (width - self.w) / 2;
         let screen_y = (height - self.h) / 2;
@@ -54,6 +66,7 @@ impl Camera {
         )
     }
 
+    /// Cover the world outside the camera's view with black bars
     fn render(&self, canvas: &mut Canvas<Window>) {
         let (width, height) = canvas.window().size();
         let left_offset = (width - self.w) / 2;
@@ -71,14 +84,18 @@ impl Camera {
     }
 }
 
-// Manages loading and keeping track of textures
+/// Manages loading and keeping track of textures
 pub struct TextureManager<'a> {
+    /// Index to give a newly created texture
     next_texture_id: usize,
+    /// Hashmap of texture indices to actual textures
     textures: HashMap<usize, Texture<'a>>,
+    /// Sdl texture creation struct
     texture_creator: &'a TextureCreator<WindowContext>
 }
 
 impl<'a> TextureManager<'a> {
+    /// Create a new texture manager
     pub fn new(texture_creator: &'a TextureCreator<WindowContext>) -> TextureManager<'a> {
         TextureManager {
             next_texture_id: 0,
@@ -87,6 +104,7 @@ impl<'a> TextureManager<'a> {
         }
     }
 
+    /// Read a texture from disk into memory and returns its index to reference later
     pub fn load_texture(&mut self, path: &str) -> usize {
         let id = self.next_texture_id;
         self.next_texture_id += 1;
@@ -97,22 +115,29 @@ impl<'a> TextureManager<'a> {
         id
     }
 
+    /// Get a texture from its index
     pub fn get_texture(&mut self, id: usize) -> Option<&Texture<'a>> {
         self.textures.get(&id)
     }
 }
 
 
-// The actual rendering system, uses GraphicsState
+/// The actual rendering system, uses GraphicsState
 pub struct GraphicsSystem<'a> {
+    /// Collection and management of textures
     pub texture_manager: TextureManager<'a>,
+    /// Rendering surface, does all drawing
     canvas: &'a mut Canvas<Window>,
+    /// Camera to view the world through
     camera: Camera,
+    /// Display debug information such as hitboxes
     pub debug: bool,
+    /// Currently rendered dialog box
     pub dialog: Option<(usize, sdl2::rect::Rect, sdl2::rect::Rect, Font<'a, 'a>)>,
 }
 
 impl<'a> GraphicsSystem<'a> {
+    /// Create a new GraphicsSystem
     pub fn new(texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
         GraphicsSystem {
             texture_manager,
@@ -123,7 +148,7 @@ impl<'a> GraphicsSystem<'a> {
         }
     }
 
-    // Make the Camera follow the entity
+    /// Make the Camera follow a given rectangle
     fn follow(&mut self, rect: Rect) {
         let cam_left = self.camera.x;
         let cam_right = self.camera.x + self.camera.w as f32 / self.camera.zoom as f32;
@@ -152,7 +177,7 @@ impl<'a> GraphicsSystem<'a> {
         }
     }
 
-    // Draw an entity based on its position and texture
+    /// Draw an entity based on its position and texture
     pub fn draw_entity(&mut self, entity: (&HashSet<String>, &PositionComponent, &GraphicsComponent), physics: Option<&PhysicsComponent>) {
         let tex_id = entity.2.texture_id;
         let flipped = entity.2.flipped;
@@ -172,7 +197,7 @@ impl<'a> GraphicsSystem<'a> {
         }
     }
 
-    // Run the system
+    /// Draw all renderable entities
     pub fn run(&mut self, world: &mut World) {
         self.canvas.clear();
 
@@ -208,6 +233,7 @@ impl<'a> GraphicsSystem<'a> {
         self.canvas.present();
     }
 
+    /// Render a dialog window
     fn render_dialog(&mut self, dialog: &Dialog) {
         let (screen_width, screen_height) = self.canvas.window().size();
         let left_offset = ((screen_width - self.camera.w) / 2) as i32;

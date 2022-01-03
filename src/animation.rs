@@ -105,8 +105,7 @@ impl AnimationSystem {
         AnimationSystem {}
     }
 
-    /// Finish the current running animation or start the most appropriate animation
-    /// based on entity state
+    /// Play the most relevant animations based on state
     pub fn run(&mut self, world: &mut World) {
         for (_, (states, _, graphics, animations)) in world.animations_mut() {
             // Find the state which determines the animation

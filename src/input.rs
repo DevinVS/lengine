@@ -1,10 +1,17 @@
-use std::{collections::HashSet, f32::consts::FRAC_PI_2, f32::consts::{FRAC_PI_4, PI}};
-use sdl2::{event::Event, keyboard::Keycode, controller::Button};
-use crate::{vector::Vector, world::World, effect::Effect};
-use sdl2::{GameControllerSubsystem, JoystickSubsystem};
+use std::collections::HashSet;
+
+use sdl2::GameControllerSubsystem;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::controller::Button;
 use sdl2::controller::GameController;
 use sdl2::controller::Axis;
+
+use crate::vector::Vector;
+use crate::world::World;
+use crate::effect::Effect;
 use crate::geometry::Rect;
+
 
 /// System to handle input devices such as keyboards, joysticks, and controllers
 pub struct InputSystem {

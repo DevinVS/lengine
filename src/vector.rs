@@ -1,22 +1,27 @@
 use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
-
 use std::f32::consts::PI;
 
+/// Vector with direction and magnitude, mainly used for velocity
 #[derive(Clone, Copy, Debug)]
 pub struct Vector {
+    /// Direction of the vector in radians
     pub dir: f32,
+    /// Magnitude of the vector
     pub mag: f32
 }
 
 impl Vector {
+    /// Create a new vector from direction and magnitude
     pub fn new(dir: f32, mag: f32) -> Vector {
         Vector {dir, mag}
     }
 
+    /// Create a new zero vector
     pub fn zero() -> Vector {
         Vector {dir: 0.0, mag: 0.0}
     }
 
+    /// Create a new vector from x and y components
     pub fn from_components(x: f32, y: f32) -> Vector {
         Vector {
             mag: (x.powi(2) + y.powi(2)).sqrt(),
@@ -24,18 +29,14 @@ impl Vector {
         }
     }
 
+    /// Get the x component of the vector
     pub fn x(&self) -> f32 {
         self.mag * self.dir.cos()
     }
 
+    /// Get the y component of the vector
     pub fn y(&self) -> f32 {
         self.mag * self.dir.sin()
-    }
-
-    pub fn clamp(&mut self) {
-        if self.mag < 0.5 {
-            self.mag = 0.0;
-        }
     }
 }
 

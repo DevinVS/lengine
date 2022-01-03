@@ -3,8 +3,7 @@ use std::process::exit;
 use std::time::Duration;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use game::dialog::Dialog;
-use game::state::{ActionComponent, Sequence, StateSystem};
+
 use yaml_rust::{YamlLoader, Yaml};
 
 use sdl2::event::Event;
@@ -13,8 +12,10 @@ use sdl2::keyboard::Keycode;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::GameControllerSubsystem;
-use sdl2::ttf::{Font, Sdl2TtfContext};
+use sdl2::ttf::Sdl2TtfContext;
 
+use game::dialog::Dialog;
+use game::state::{ActionComponent, Sequence, StateSystem};
 use game::map::WorldMap;
 use game::world::World;
 use game::input::InputSystem;
@@ -23,14 +24,12 @@ use game::physics::{PhysicsSystem, PhysicsComponent};
 use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager};
 use game::animation::{AnimationSystem, AnimationComponent, Animation};
 use game::effect::EffectSystem;
-
-use game::actions::{ShowDialog, AddState, AddEffect, RemoveState, Action};
+use game::actions::{ShowDialog, AddState, RemoveState, Action};
 
 fn main() {
     // Create context and relevant subsystems
     let sdl2_context = sdl2::init().unwrap();
     let video_subsystem = sdl2_context.video().unwrap();
-    let audio_subsystem = sdl2_context.audio().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG).unwrap();
     let mut ttf_context = sdl2::ttf::init().unwrap();
     let controller_subsystem = sdl2_context.game_controller().unwrap();
