@@ -31,4 +31,6 @@ impl Action for RemoveState {
 // TODO
 struct AddEffect {}
 
-struct ShowDialog {}
+struct ShowDialog {
+    dialog: String
+}

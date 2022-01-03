@@ -1,19 +1,143 @@
+graphics:
+  debug: true
+  dialog:
+    path: "./assets/dialog.png"
+    font: "./assets/GnuUnifontFull-Pm9P.ttf"
+    renderbox:
+      x: 0
+      y: 500
+      w: 800
+      h: 100
+    textbox:
+      x: 40
+      y: 20
+      w: 720
+      h: 60
+dialogs:
+  - name: "test"
+    messages:
+      - "Hello World"
+      - "Goodbye World"
 entities:
+  # Timmy
   - position:
       x: 0.0
       y: 0.0
     player: true
     physics:
       hitbox:
-        w: 16
-        h: 16
+        w: 12
+        h: 17
+      depth: 2
     graphics:
-      path: "./assets/ginny.png"
+      path: "./assets/timmy_innit.png"
       renderbox:
-        w: 16
-        h: 16
+        w: 12
+        h: 17
       srcbox:
         x: 0
         y: 0
+        w: 12
+        h: 17
+    animations:
+      - animation:
+          state: "idle"
+          period: 1.0
+          textures:
+            - path: "./assets/timmy_innit.png"
+      - animation:
+          state: "walking"
+          period: 0.1
+          textures:
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 0
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 18
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 36
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 54
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 72
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 90
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 108
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 126
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 144
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 162
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 180
+              y: 0
+              w: 12
+              h: 17
+          - path: "./assets/timmy_walking.png"
+            srcbox:
+              x: 198
+              y: 0
+              w: 12
+              h: 17
+  # Sign
+  - position:
+      x: 50.0
+      y: 0.0
+    physics:
+      hitbox:
+        x: 7.0
+        y: 8.0
+        w: 2
+        h: 8
+      depth: 1
+    graphics:
+      path: "./assets/sign.png"
+      renderbox:
         w: 16
         h: 16
+    actions:
+      - state: "interact"
+        type: "dialog"
+        dialog: "test"

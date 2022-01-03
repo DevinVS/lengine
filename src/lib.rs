@@ -9,3 +9,4 @@ pub mod vector;
 pub mod geometry;
 pub mod state;
 pub mod actions;
+pub mod dialog;

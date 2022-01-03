@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::collections::HashMap;
 
 use itertools::izip;
 
@@ -9,17 +10,27 @@ use crate::graphics::GraphicsComponent;
 use crate::animation::AnimationComponent;
 use crate::state::ActionComponent;
 use crate::effect::Effect;
+use crate::dialog::Dialog;
 
 // Struct containing all game data and current state
 pub struct World {
-    // Definition of the bounds and rendering for the world
+    /// World Map, currently nothing
     map: WorldMap,
-    // Player / Currently controlled entity id
+
+    /// Entity who is controllable and interacts with other objects
     pub player_id: Option<usize>,
 
+    /// All effects in the game world
     pub effects: Vec<Effect>,
 
-    // Properties for each entity
+    /// All Dialogs
+    pub dialogs: HashMap<String, Dialog>,
+
+    /// Currently selected dialog index
+    pub curr_dialog: Option<String>,
+
+    // Entity Components
+
     pub states: Vec<HashSet<String>>,
     pub positions: Vec<Option<PositionComponent>>,
     pub physics: Vec<Option<PhysicsComponent>>,
@@ -39,9 +50,12 @@ impl World {
             graphics: Vec::new(),
             animations: Vec::new(),
             actions: Vec::new(),
-            effects: Vec::new()
+            effects: Vec::new(),
+            dialogs: HashMap::new(),
+            curr_dialog: None
         }
     }
+
     // Add an entity to the entity manager
     pub fn add_entity(&mut self,
         position: Option<PositionComponent>,
@@ -58,6 +72,14 @@ impl World {
         self.actions.push(actions);
 
         self.states.len()-1
+    }
+
+    pub fn add_dialog(&mut self, name: String, dialog: Dialog) {
+        self.dialogs.insert(name, dialog);
+    }
+
+    pub fn current_dialog(&mut self) -> Option<&mut Dialog> {
+        self.curr_dialog.as_ref().map(|e| self.dialogs.get_mut(e).unwrap())
     }
 
     pub fn apply_effects(&mut self) {

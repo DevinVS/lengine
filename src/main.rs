@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 use std::process::exit;
 use std::time::Duration;
-use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::sync::mpsc::channel;
-
-use notify::RecursiveMode;
-use notify::Watcher;
-use notify::watcher;
-use yaml_rust::YamlLoader;
+use yaml_rust::{YamlLoader, Yaml};
 
 use sdl2::event::Event;
 use sdl2::image::InitFlag;
 use sdl2::keyboard::Keycode;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+use sdl2::GameControllerSubsystem;
+use sdl2::ttf::{Font, Sdl2TtfContext};
 
 use game::map::WorldMap;
 use game::world::World;
@@ -25,16 +23,12 @@ use game::animation::{AnimationSystem, AnimationComponent, Animation};
 use game::effect::EffectSystem;
 
 fn main() {
-    // Code for watching changes
-    let (tx, rx) = channel();
-    let mut watcher = watcher(tx, Duration::from_secs(1)).unwrap();
-    watcher.watch("./assets", RecursiveMode::Recursive).unwrap();
-
     // Create context and relevant subsystems
     let sdl2_context = sdl2::init().unwrap();
     let video_subsystem = sdl2_context.video().unwrap();
     let audio_subsystem = sdl2_context.audio().unwrap();
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG).unwrap();
+    let mut ttf_context = sdl2::ttf::init().unwrap();
     let controller_subsystem = sdl2_context.game_controller().unwrap();
 
     // Create graphics objects such as window, canvas, and texture manager
@@ -50,17 +44,16 @@ fn main() {
     canvas.set_draw_color((255, 255, 255));
 
     let texture_creator = canvas.texture_creator();
-    let mut texture_manager = TextureManager::new(&texture_creator);
+    let texture_manager = TextureManager::new(&texture_creator);
 
-    // Load Game Data
-    let mut world = load_world_from_yaml("./game.yml", &mut texture_manager).unwrap();
-
-    // Create Game Systems
-    let mut input_system = InputSystem::new(controller_subsystem);
-    let mut physics_system = PhysicsSystem::new();
-    let mut effects_system = EffectSystem::new();
-    let mut animation_system = AnimationSystem::new();
-    let mut graphics_system = GraphicsSystem::new(texture_manager, &mut canvas);
+    let (
+        mut world,
+        mut input_system,
+        mut physics_system,
+        mut effects_system,
+        mut animation_system,
+        mut graphics_system
+    ) = load_yaml("./game.yml", texture_manager, &mut canvas, controller_subsystem, &mut ttf_context);
 
     // Run Game Loop
     loop {
@@ -82,29 +75,33 @@ fn main() {
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
 
-        // Check for changes
-        if rx.try_recv().is_ok() {
-            texture_manager = TextureManager::new(&texture_creator);
-            world = load_world_from_yaml("game.yml", &mut texture_manager).unwrap();
-            graphics_system.texture_manager = texture_manager;
-        }
-
         // Sleep
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
 
-fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Result<World, Box<dyn Error>> {
-    let world_map = WorldMap::new();
-    let mut world = World::new(world_map);
-
-    let file = File::open(path)?;
+    fn load_yaml<'a>(path: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>) {
+    let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
-    reader.read_to_string(&mut contents)?;
+    reader.read_to_string(&mut contents).unwrap();
 
-    let docs = YamlLoader::load_from_str(&contents)?;
+    let docs = YamlLoader::load_from_str(&contents).unwrap();
     let doc = &docs[0];
+
+    let world = world_from_yaml(doc, &mut texture_manager);
+    let input_system = InputSystem::new(gs);
+    let physics_system = PhysicsSystem::new();
+    let effect_system = EffectSystem::new();
+    let animation_system = AnimationSystem::new();
+    let graphics_system = graphics_system_from_yaml(doc, texture_manager, canvas, ttf_context);
+
+    (world, input_system, physics_system, effect_system, animation_system, graphics_system)
+}
+
+fn world_from_yaml(doc: &Yaml, texture_manager: &mut TextureManager) -> World {
+    let world_map = WorldMap::new();
+    let mut world = World::new(world_map);
 
     let mut texture_map: HashMap<String, usize> = HashMap::new();
 
@@ -249,6 +246,33 @@ fn load_world_from_yaml(path: &str, texture_manager: &mut TextureManager) -> Res
         }
     }
 
-    Ok(world)
+    world
+}
+
+fn graphics_system_from_yaml<'a>(doc: &Yaml, texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, ttf_context: &'a mut Sdl2TtfContext) -> GraphicsSystem<'a> {
+    let mut gs = GraphicsSystem::new(texture_manager, canvas);
+    gs.debug = doc["graphics"]["debug"].as_bool().unwrap_or(false);
+
+    let dialog_path = doc["graphics"]["dialog"]["path"].as_str();
+    let dialog_x = doc["graphics"]["dialog"]["renderbox"]["x"].as_i64().map(|e| e as i32);
+    let dialog_y = doc["graphics"]["dialog"]["renderbox"]["y"].as_i64().map(|e| e as i32);
+    let dialog_w = doc["graphics"]["dialog"]["renderbox"]["w"].as_i64().map(|e| e as u32);
+    let dialog_h = doc["graphics"]["dialog"]["renderbox"]["h"].as_i64().map(|e| e as u32);
+    let text_x = doc["graphics"]["dialog"]["textbox"]["x"].as_i64().map(|e| e as i32);
+    let text_y = doc["graphics"]["dialog"]["textbox"]["y"].as_i64().map(|e| e as i32);
+    let text_w = doc["graphics"]["dialog"]["textbox"]["w"].as_i64().map(|e| e as u32);
+    let text_h = doc["graphics"]["dialog"]["textbox"]["h"].as_i64().map(|e| e as u32);
+    let font = doc["graphics"]["dialog"]["font"].as_str();
+
+    if dialog_path.is_some() && dialog_x.is_some() && dialog_y.is_some() && dialog_w.is_some() && dialog_h.is_some() && text_x.is_some() && text_y.is_some() && text_w.is_some() && text_h.is_some() && font.is_some() {
+        let tex_id = gs.texture_manager.load_texture(dialog_path.unwrap());
+        let renderbox = sdl2::rect::Rect::new(dialog_x.unwrap(), dialog_y.unwrap(), dialog_w.unwrap(), dialog_h.unwrap());
+        let textbox = sdl2::rect::Rect::new(text_x.unwrap(), text_y.unwrap(), text_w.unwrap(), text_h.unwrap());
+
+        let font = ttf_context.load_font(font.unwrap(), 20).unwrap();
+        gs.dialog = Some((tex_id, renderbox, textbox, font));
+    }
+
+    gs
 }
 

@@ -109,20 +109,7 @@ impl AnimationSystem {
     /// based on entity state
     pub fn run(&mut self, world: &mut World) {
         for (_, (states, _, graphics, animations)) in world.animations_mut() {
-            // If an animation is currently playing, play it
-            if let Some(animation) = animations.current_mut() {
-                animation.tick();
-                graphics.texture_id = animation.current_texture();
-                graphics.srcbox = animation.current_srcbox();
-
-                if animation.curr_tex_index == 0 {
-                    animations.curr_key = None;
-                }
-
-                continue;
-            }
-
-            // Else find the state which determines the animation
+            // Find the state which determines the animation
             for state in states.iter() {
                 if let Some(animation) = animations.get_mut(state) {
 

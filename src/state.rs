@@ -39,6 +39,12 @@ pub struct ActionComponent {
 }
 
 impl ActionComponent {
+    pub fn new(actions: HashMap<String, Sequence>) -> ActionComponent {
+        ActionComponent {
+            actions
+        }
+    }
+
     pub fn get_mut(&mut self, state: &String) -> Option<&mut Sequence> {
         self.actions.get_mut(state)
     }

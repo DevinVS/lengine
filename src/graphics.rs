@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use sdl2::render::Canvas;
+use sdl2::render::TextureQuery;
+use sdl2::ttf::Font;
 use sdl2::video::{Window, WindowContext};
 use sdl2::image::LoadTexture;
 use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
+use crate::dialog::Dialog;
 use crate::geometry::PositionComponent;
 use crate::physics::PhysicsComponent;
 use crate::world::World;
@@ -15,7 +18,7 @@ pub struct GraphicsComponent {
     pub texture_id: usize,
     pub srcbox: Option<sdl2::rect::Rect>,
     pub renderbox: Rect,
-    pub flipped: bool,
+    pub flipped: bool
 }
 
 impl GraphicsComponent {
@@ -30,8 +33,8 @@ impl GraphicsComponent {
 }
 
 pub struct Camera {
-    x: i32,
-    y: i32,
+    x: f32,
+    y: f32,
     w: u32,
     h: u32,
     zoom: u32   // Pixels per in game units
@@ -43,8 +46,8 @@ impl Camera {
         let screen_y = (height - self.h) / 2;
 
         Rect::new(
-            (rect.x-self.x as f32) * self.zoom as f32 + screen_x as f32,
-            (rect.y-self.y as f32) * self.zoom as f32 + screen_y as f32,
+            (rect.x-self.x) * self.zoom as f32 + screen_x as f32,
+            (rect.y-self.y) * self.zoom as f32 + screen_y as f32,
             rect.w * self.zoom,
             rect.h * self.zoom
         )
@@ -103,7 +106,9 @@ impl<'a> TextureManager<'a> {
 pub struct GraphicsSystem<'a> {
     pub texture_manager: TextureManager<'a>,
     canvas: &'a mut Canvas<Window>,
-    camera: Camera
+    camera: Camera,
+    pub debug: bool,
+    pub dialog: Option<(usize, sdl2::rect::Rect, sdl2::rect::Rect, Font<'a, 'a>)>,
 }
 
 impl<'a> GraphicsSystem<'a> {
@@ -111,12 +116,39 @@ impl<'a> GraphicsSystem<'a> {
         GraphicsSystem {
             texture_manager,
             canvas,
-            camera: Camera {x: 0, y: 0, w: 800, h: 600, zoom: 5}
+            camera: Camera {x: 0.0, y: 0.0, w: 800, h: 600, zoom: 5},
+            debug: false,
+            dialog: None,
         }
     }
 
     // Make the Camera follow the entity
-    fn follow(&mut self, entity: (&PositionComponent, &GraphicsComponent)) {
+    fn follow(&mut self, rect: Rect) {
+        let cam_left = self.camera.x;
+        let cam_right = self.camera.x + self.camera.w as f32 / self.camera.zoom as f32;
+        let cam_top = self.camera.y;
+        let cam_bottom = self.camera.y + self.camera.h as f32 / self.camera.zoom as f32;
+
+        let rect_left = rect.x;
+        let rect_right = rect.x + rect.w as f32;
+        let rect_top = rect.y;
+        let rect_bottom = rect.y + rect.h as f32;
+
+        if rect_left < cam_left {
+            self.camera.x = rect_left;
+        }
+
+        if rect_right > cam_right {
+            self.camera.x += rect_right - cam_right;
+        }
+
+        if rect_top < cam_top {
+            self.camera.y = rect_top;
+        }
+
+        if rect_bottom > cam_bottom {
+            self.camera.y += rect_bottom - cam_bottom;
+        }
     }
 
     // Draw an entity based on its position and texture
@@ -130,8 +162,8 @@ impl<'a> GraphicsSystem<'a> {
         self.canvas.copy_ex(texture, entity.2.srcbox, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
 
         // Draw hitbox
-        if physics.is_some() {
-            let mut hitbox = self.camera.view(physics.unwrap().hitbox.after_position(entity.1), self.canvas.window().size());
+        if self.debug && physics.is_some() {
+            let hitbox = self.camera.view(physics.unwrap().hitbox.after_position(entity.1), self.canvas.window().size());
 
             self.canvas.set_draw_color((255, 0, 0));
             self.canvas.draw_rect(hitbox.sdl2()).unwrap();
@@ -143,9 +175,11 @@ impl<'a> GraphicsSystem<'a> {
     pub fn run(&mut self, world: &mut World) {
         self.canvas.clear();
 
-        // if let Some(player) = world.get_player() {
-        //     self.follow(&player);
-        // }
+        if let Some(player_id) = world.player_id {
+            if let (Some(pos), Some(phys)) = world.get_entity_physics(player_id) {
+                self.follow(phys.hitbox.after_position(pos));
+            }
+        }
 
         let mut drawables: Vec<(usize, (_, &PositionComponent, &GraphicsComponent))> = world.graphics().collect();
 
@@ -160,8 +194,52 @@ impl<'a> GraphicsSystem<'a> {
             let physics = world.get_entity_physics(e.0);
             self.draw_entity(e.1, physics.1);
         });
+
+        // Draw Dialog If Exists
+        if self.dialog.is_some() {
+            if let Some(dialog) = world.current_dialog() {
+                self.render_dialog(dialog);
+            }
+        }
+
+
         // Draw Camera Borders
         self.camera.render(self.canvas);
+
+        // Testing
+        self.render_dialog(&Dialog::new(vec!["Hello World! I think it is I that you meant to see and also my brother who you meant to find. If this is true, what can you say about my sister?".to_string()]));
+
         self.canvas.present();
     }
+
+    fn render_dialog(&mut self, dialog: &Dialog) {
+        // Draw Box
+        let (tex_id, r, t, font) = self.dialog.as_ref().unwrap();
+        let tex = self.texture_manager.get_texture(*tex_id).unwrap();
+        self.canvas.copy(tex, None, *r).unwrap();
+
+        // Draw Text
+        let msg = dialog.msg();
+        let surface = font.render(&msg).blended_wrapped((0, 0, 0), t.width()).unwrap();
+        let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
+
+        let TextureQuery { width, height, .. } = tex.query();
+        let (screen_width, screen_height) = self.canvas.window().size();
+        let left_offset = ((screen_width - self.camera.w) / 2) as i32;
+        let top_offset = ((screen_height - self.camera.h) / 2) as i32;
+
+        self.canvas.copy(
+            &tex,
+            None,
+            sdl2::rect::Rect::new(
+                left_offset+r.x+t.x,
+                top_offset+r.y+t.y,
+                width,
+                height
+            )
+        ).unwrap();
+
+    }
 }
+
+
