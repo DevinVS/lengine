@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
@@ -226,6 +227,17 @@ impl<'a> GraphicsSystem<'a> {
             if let Some(dialog) = world.current_dialog() {
                 self.render_dialog(dialog);
             }
+        }
+
+        // Draw effects if we are in debug mode
+        if self.debug {
+            let draw_color = self.canvas.draw_color();
+            self.canvas.set_draw_color(Color::MAGENTA);
+            for effect in world.effects.iter() {
+                let rect = self.camera.view(effect.rect, self.canvas.window().size());
+                self.canvas.draw_rect(rect.sdl2()).unwrap();
+            }
+            self.canvas.set_draw_color(draw_color);
         }
 
         // Draw Camera Borders

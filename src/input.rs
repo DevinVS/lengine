@@ -91,9 +91,14 @@ impl InputSystem {
             if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
                 // If the interact key is pressed try to interact with the object that is in front of us
                 if self.key_state.contains(&Keycode::E) {
-                    let r = physics_state.hitbox
+                    let mut r = physics_state.hitbox
                         .after_position(&pos)
                         .after_depth(physics_state.depth);
+
+                    r.x -= 2.0;
+                    r.w += 4;
+                    r.y -= 3.0;
+                    r.h += 3;
 
                     world.effects.push(Effect::new(
                         "interact".to_string(),
@@ -127,6 +132,7 @@ impl InputSystem {
                 vel.mag *= max_mag;
                 physics_state.velocity = vel;
 
+                // Set appropriate states for idle and walking
                 if vel.mag != 0.0 {
                     world.remove_entity_state(player, &"idle".to_string());
                     world.add_entity_state(player, "walking".into());
@@ -135,6 +141,7 @@ impl InputSystem {
                     world.add_entity_state(player, "idle".into());
                 }
 
+                // If the player is drawable, make sure to flip it when moving the other way
                 if let (_, Some(graphics)) = world.get_entity_graphics_mut(player) {
                     if vel.x() > 0.1 {
                         graphics.flipped = false;
@@ -142,6 +149,8 @@ impl InputSystem {
                         graphics.flipped = true;
                     }
                 }
+
+
             }
         }
     }
