@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
@@ -202,31 +203,27 @@ impl<'a> GraphicsSystem<'a> {
             }
         }
 
-
         // Draw Camera Borders
         self.camera.render(self.canvas);
-
-        // Testing
-        self.render_dialog(&Dialog::new(vec!["Hello World! I think it is I that you meant to see and also my brother who you meant to find. If this is true, what can you say about my sister?".to_string()]));
-
         self.canvas.present();
     }
 
     fn render_dialog(&mut self, dialog: &Dialog) {
-        // Draw Box
-        let (tex_id, r, t, font) = self.dialog.as_ref().unwrap();
-        let tex = self.texture_manager.get_texture(*tex_id).unwrap();
-        self.canvas.copy(tex, None, *r).unwrap();
-
-        // Draw Text
-        let msg = dialog.msg();
-        let surface = font.render(&msg).blended_wrapped((0, 0, 0), t.width()).unwrap();
-        let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
-
-        let TextureQuery { width, height, .. } = tex.query();
         let (screen_width, screen_height) = self.canvas.window().size();
         let left_offset = ((screen_width - self.camera.w) / 2) as i32;
         let top_offset = ((screen_height - self.camera.h) / 2) as i32;
+
+        // Draw Box
+        let (tex_id, r, t, font) = self.dialog.as_ref().unwrap();
+        let tex = self.texture_manager.get_texture(*tex_id).unwrap();
+        self.canvas.copy(tex, None, sdl2::rect::Rect::new(left_offset+r.x, top_offset+r.y, r.width(), r.height())).unwrap();
+
+        // Draw Text
+        let msg = dialog.msg();
+        let surface = font.render(&msg).blended_wrapped((46, 53, 42), t.width()).unwrap();
+        let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
+
+        let TextureQuery { width, height, .. } = tex.query();
 
         self.canvas.copy(
             &tex,

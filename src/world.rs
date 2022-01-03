@@ -11,6 +11,7 @@ use crate::animation::AnimationComponent;
 use crate::state::ActionComponent;
 use crate::effect::Effect;
 use crate::dialog::Dialog;
+use crate::effect::EffectSystem;
 
 // Struct containing all game data and current state
 pub struct World {

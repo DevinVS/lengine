@@ -1,36 +1,46 @@
 use std::collections::HashSet;
-use crate::geometry::PositionComponent;
-use crate::physics::PhysicsComponent;
-use crate::graphics::GraphicsComponent;
-use crate::animation::AnimationComponent;
+use crate::effect::Effect;
 
 pub trait Action {
-    fn tick(&mut self, s: &mut HashSet<String>, p: &Option<&mut PositionComponent>, ph: &Option<&mut PhysicsComponent>, g: &Option<&mut GraphicsComponent>, a: &Option<&mut AnimationComponent>);
+    fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialog: &mut Option<String>);
 }
 
-struct AddState {
-    state: String
+pub struct AddState {
+    pub state: String
 }
 
 impl Action for AddState {
-    fn tick(&mut self, s: &mut HashSet<String>, p: &Option<&mut PositionComponent>, ph: &Option<&mut PhysicsComponent>, g: &Option<&mut GraphicsComponent>, a: &Option<&mut AnimationComponent>) {
-        s.insert(self.state.clone());
+    fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialogs: &mut Option<String>) {
+        states.insert(self.state.clone());
     }
 }
 
-struct RemoveState {
-    state: String
+pub struct RemoveState {
+    pub state: String
 }
 
 impl Action for RemoveState {
-    fn tick(&mut self, s: &mut HashSet<String>, p: &Option<&mut PositionComponent>, ph: &Option<&mut PhysicsComponent>, g: &Option<&mut GraphicsComponent>, a: &Option<&mut AnimationComponent>) {
-        s.remove(&self.state);
+    fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialogs: &mut Option<String>) {
+        states.remove(&self.state);
     }
 }
 
-// TODO
-struct AddEffect {}
+pub struct AddEffect {
+    pub effect: Effect
+}
 
-struct ShowDialog {
-    dialog: String
+impl Action for AddEffect {
+    fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialog: &mut Option<String>) {
+        effects.push(self.effect.clone())
+    }
+}
+
+pub struct ShowDialog {
+    pub dialog: String
+}
+
+impl Action for ShowDialog {
+    fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialog: &mut Option<String>) {
+        *dialog = Some(self.dialog.clone())
+    }
 }

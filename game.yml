@@ -1,23 +1,23 @@
 graphics:
-  debug: true
   dialog:
     path: "./assets/dialog.png"
-    font: "./assets/GnuUnifontFull-Pm9P.ttf"
+    font: "./assets/PressStart2P-vaV7.ttf"
+    fontsize: 14
     renderbox:
       x: 0
-      y: 500
+      y: 400
       w: 800
-      h: 100
+      h: 200
     textbox:
-      x: 40
-      y: 20
+      x: 60
+      y: 60
       w: 720
       h: 60
 dialogs:
   - name: "test"
     messages:
-      - "Hello World"
-      - "Goodbye World"
+      - "Hello World. Welcome to the demo of the game."
+      - "Please Enjoy."
 entities:
   # Timmy
   - position:
@@ -137,7 +137,10 @@ entities:
       renderbox:
         w: 16
         h: 16
-    actions:
+    events:
       - state: "interact"
-        type: "dialog"
-        dialog: "test"
+        actions:
+          - type: "dialog"
+            dialog: "test"
+          - type: "remove_state"
+            state: "interact"

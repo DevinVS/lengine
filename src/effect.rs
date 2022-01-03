@@ -1,7 +1,7 @@
 use std::time::Instant;
 use crate::{geometry::Rect, world::World};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Effect {
     pub name: String,
     created: Instant,
@@ -34,7 +34,7 @@ impl EffectSystem {
 
     pub fn run(&mut self, world: &mut World) {
         world.effects = world.effects.iter()
-            .filter(|e| e.finished())
+            .filter(|e| !e.finished())
             .map(|e| e.clone())
             .collect();
 

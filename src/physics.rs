@@ -94,8 +94,6 @@ impl PhysicsSystem {
             }
 
             entities[i].1.1.apply_vector(delta_vec);
-
-            // Apply Effects
         }
 
         self.last_tick = Instant::now();

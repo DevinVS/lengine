@@ -1,9 +1,10 @@
 use std::{collections::HashSet, f32::consts::FRAC_PI_2, f32::consts::{FRAC_PI_4, PI}};
 use sdl2::{event::Event, keyboard::Keycode, controller::Button};
-use crate::{vector::Vector, world::World};
+use crate::{vector::Vector, world::World, effect::Effect};
 use sdl2::{GameControllerSubsystem, JoystickSubsystem};
 use sdl2::controller::GameController;
 use sdl2::controller::Axis;
+use crate::geometry::Rect;
 
 /// System to handle input devices such as keyboards, joysticks, and controllers
 pub struct InputSystem {
@@ -62,31 +63,57 @@ impl InputSystem {
     pub fn run(&mut self, world: &mut World) {
         // Act based up on current key state
 
+        // If a dialog exists, process no future input and instead wait for the e key
+        if let Some(dialog) = world.current_dialog() {
+            if self.key_state.contains(&Keycode::E) {
+                if dialog.finished() {
+                    dialog.next();
+                    world.curr_dialog = None;
+                } else {
+                    dialog.next();
+                }
+
+
+                self.key_state.remove(&Keycode::E);
+            }
+
+            return;
+        }
         // Player movement
         if let Some(player) = world.player_id {
-            if let (_, Some(physics_state)) = world.get_entity_physics_mut(player) {
+            if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
+                // If the interact key is pressed try to interact with the object that is in front of us
+                if self.key_state.contains(&Keycode::E) {
+                    let r = physics_state.hitbox
+                        .after_position(&pos)
+                        .after_depth(physics_state.depth);
+
+                    world.effects.push(Effect::new(
+                        "interact".to_string(),
+                        Rect::new(r.x, r.y-5.0,r.w, r.h+5),
+                        Some(0.1)
+                    ));
+
+                    self.key_state.remove(&Keycode::E);
+                }
 
                 // If joystick connected and its values beyond the deadzone use it, otherwise
                 // buttons and keys
                 let max_mag = 100.0;
 
-                let mut vel = if self.controller.is_some() {
-                    let c = self.controller.as_ref().unwrap();
-                    let x = c.axis(Axis::LeftX) as f32 / 32768.0;
-                    let y = c.axis(Axis::LeftY) as f32 / 32768.0;
+                let (x, y) = if self.controller.is_some() {
+                    let (x, y) = self.joystick_velocity();
 
-                    let dead_zone = 10_000.0 / 32768.0;
-
-                    if x.abs() > dead_zone || y.abs() > dead_zone {
-                        Vector::from_components(x, y)
+                    if x < 0.01 && y < 0.01 {
+                        self.button_velocity()
                     } else {
-                        let (dir, mag) = self.button_movement();
-                        Vector::new(dir, mag)
+                        (x, y)
                     }
                 } else {
-                    let (dir, mag) = self.button_movement();
-                    Vector::new(dir, mag)
+                    self.button_velocity()
                 };
+
+                let mut vel = Vector::from_components(x, y);
 
                 vel.mag *= max_mag;
                 physics_state.velocity = vel;
@@ -109,31 +136,34 @@ impl InputSystem {
             }
         }
     }
+    /// Move the player using the joysticks
+    fn joystick_velocity(&self) -> (f32, f32) {
+        let c = self.controller.as_ref().unwrap();
+        let x = c.axis(Axis::LeftX) as f32 / 32768.0;
+        let y = c.axis(Axis::LeftY) as f32 / 32768.0;
+
+        let dead_zone = 10_000.0 / 32768.0;
+
+        if x.abs() > dead_zone || y.abs() > dead_zone {
+            (x, y)
+        } else {
+            (0.0, 0.0)
+        }
+    }
 
     /// Move the player using the buttons as inputs
-    fn button_movement(&self) -> (f32, f32) {
+    fn button_velocity(&self) -> (f32, f32) {
         let north = self.key_state.contains(&Keycode::W) || self.button_state.contains(&Button::DPadUp) || self.key_state.contains(&Keycode::Up);
         let west = self.key_state.contains(&Keycode::A) || self.button_state.contains(&Button::DPadLeft) || self.key_state.contains(&Keycode::Left);
         let south = self.key_state.contains(&Keycode::S) || self.button_state.contains(&Button::DPadDown) || self.key_state.contains(&Keycode::Down);
         let east = self.key_state.contains(&Keycode::D) || self.button_state.contains(&Button::DPadRight) || self.key_state.contains(&Keycode::Right);
 
-        let mut mag = 1.0;
 
-        let dir = match (north, east, south, west) {
-            (true, false, false, false) | (true, true, false, true) => -FRAC_PI_2,  // North
-            (false, false, true, false) | (false, true, true, true) => FRAC_PI_2,   // South
-            (false, true, false, false) | (true, true, true, false) => 0.0,         // East
-            (false, false, false, true) | (true, false, true, true) => -PI,         // West
-            (true, true, false, false) => -FRAC_PI_4,       // Northeast
-            (true, false, false, true) => 5.0*FRAC_PI_4,    // Northwest
-            (false, true, true, false) => FRAC_PI_4,        // Southeast
-            (false, false, true, true) => 3.0*FRAC_PI_4,    // Southwest
-            _ => {
-                mag = 0.0;
-                0.0
-            }
-        };
+        let north = if north {1} else {0} as f32;
+        let south = if south {1} else {0} as f32;
+        let west = if west {1} else {0} as f32;
+        let east = if east {1} else {0} as f32;
 
-        (dir, mag)
+        (east-west, south-north)
     }
 }

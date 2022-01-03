@@ -58,12 +58,12 @@ impl StateSystem {
         StateSystem {}
     }
 
-    pub fn tick(&mut self, world: &mut World) {
-        for (_, (states, position, physics, graphics, animations, actions)) in world.all_mut() {
-            if let Some(actions) = actions {
-                for state in states.clone().iter() {
-                    if let Some(sequence) = actions.get_mut(state) {
-                        sequence.current().tick(states, &position, &physics, &graphics, &animations);
+    pub fn run(&mut self, world: &mut World) {
+        for i in 0..world.states.len() {
+            if world.actions[i].is_some() {
+                for state in world.states[i].clone().iter() {
+                    if let Some(sequence) = world.actions[i].as_mut().unwrap().get_mut(state) {
+                        sequence.current().tick(&mut world.states[i], &mut world.effects, &mut world.curr_dialog);
                         sequence.tick();
                     }
                 }

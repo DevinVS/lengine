@@ -3,6 +3,8 @@ use std::process::exit;
 use std::time::Duration;
 use std::fs::File;
 use std::io::{BufReader, Read};
+use game::dialog::Dialog;
+use game::state::{ActionComponent, Sequence, StateSystem};
 use yaml_rust::{YamlLoader, Yaml};
 
 use sdl2::event::Event;
@@ -21,6 +23,8 @@ use game::physics::{PhysicsSystem, PhysicsComponent};
 use game::graphics::{GraphicsSystem, GraphicsComponent, TextureManager};
 use game::animation::{AnimationSystem, AnimationComponent, Animation};
 use game::effect::EffectSystem;
+
+use game::actions::{ShowDialog, AddState, AddEffect, RemoveState, Action};
 
 fn main() {
     // Create context and relevant subsystems
@@ -52,7 +56,8 @@ fn main() {
         mut physics_system,
         mut effects_system,
         mut animation_system,
-        mut graphics_system
+        mut graphics_system,
+        mut state_system
     ) = load_yaml("./game.yml", texture_manager, &mut canvas, controller_subsystem, &mut ttf_context);
 
     // Run Game Loop
@@ -72,6 +77,7 @@ fn main() {
         input_system.run(&mut world);
         physics_system.run(&mut world);
         effects_system.run(&mut world);
+        state_system.run(&mut world);
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
 
@@ -80,7 +86,7 @@ fn main() {
     }
 }
 
-    fn load_yaml<'a>(path: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>) {
+    fn load_yaml<'a>(path: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>, StateSystem) {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
@@ -95,8 +101,9 @@ fn main() {
     let effect_system = EffectSystem::new();
     let animation_system = AnimationSystem::new();
     let graphics_system = graphics_system_from_yaml(doc, texture_manager, canvas, ttf_context);
+    let state_system = StateSystem::new();
 
-    (world, input_system, physics_system, effect_system, animation_system, graphics_system)
+    (world, input_system, physics_system, effect_system, animation_system, graphics_system, state_system)
 }
 
 fn world_from_yaml(doc: &Yaml, texture_manager: &mut TextureManager) -> World {
@@ -236,7 +243,53 @@ fn world_from_yaml(doc: &Yaml, texture_manager: &mut TextureManager) -> World {
             }
         };
 
-        let id = world.add_entity(position, physics, graphics, animations, None);
+        let actions = {
+            let mut action_map = HashMap::new();
+            let event_iter = entity["events"].as_vec();
+
+            if event_iter.is_none() {
+                None
+            } else {
+                for event in event_iter.unwrap() {
+                    let mut actions: Vec<(f32, Box<dyn Action>)> = Vec::new();
+                    let state = event["state"].as_str().map(|e| e.to_string());
+                    let action_iter = event["actions"].as_vec();
+
+                    if action_iter.is_none() || state.is_none() {continue;}
+
+                    for action in action_iter.unwrap() {
+                        let action_type = action["type"].as_str();
+                        if action_type.is_none() { continue; }
+                        let delay = action["delay"].as_f64().unwrap_or(0.0) as f32;
+
+                        match action_type.unwrap() {
+                            "dialog" => {
+                                let dialog = action["dialog"].as_str().unwrap().to_string();
+                                let action = ShowDialog { dialog };
+                                actions.push((delay, Box::new(action)));
+                            }
+                            "remove_state" => {
+                                let state = action["state"].as_str().unwrap().to_string();
+                                let action = RemoveState { state };
+                                actions.push((delay, Box::new(action)));
+                            }
+                            "add_state" => {
+                                let state = action["state"].as_str().unwrap().to_string();
+                                let action = AddState { state };
+                                actions.push((delay, Box::new(action)));
+                            }
+                            _ => continue
+                        }
+                    }
+
+                    action_map.insert(state.unwrap(), Sequence::new(actions));
+                }
+
+                Some(ActionComponent::new(action_map))
+            }
+        };
+
+        let id = world.add_entity(position, physics, graphics, animations, actions);
         if state.is_some() {
             world.add_entity_state(id, state.unwrap().to_string());
         }
@@ -245,6 +298,26 @@ fn world_from_yaml(doc: &Yaml, texture_manager: &mut TextureManager) -> World {
             world.player_id = Some(id);
         }
     }
+
+    world.dialogs = {
+        let mut dialogs = HashMap::new();
+
+        if let Some(dialog_iter) = doc["dialogs"].as_vec() {
+            for d in dialog_iter {
+                let name = d["name"].as_str().map(|e| e.to_string());
+                let m_iter = d["messages"].as_vec();
+
+                if name.is_none() || m_iter.is_none() {
+                    continue;
+                }
+
+                let messages = m_iter.unwrap().iter().map(|m| m.as_str().unwrap().to_string()).collect();
+                dialogs.insert(name.unwrap(), Dialog::new(messages));
+            }
+        }
+
+        dialogs
+    };
 
     world
 }
@@ -263,13 +336,14 @@ fn graphics_system_from_yaml<'a>(doc: &Yaml, texture_manager: TextureManager<'a>
     let text_w = doc["graphics"]["dialog"]["textbox"]["w"].as_i64().map(|e| e as u32);
     let text_h = doc["graphics"]["dialog"]["textbox"]["h"].as_i64().map(|e| e as u32);
     let font = doc["graphics"]["dialog"]["font"].as_str();
+    let fontsize = doc["graphics"]["dialog"]["fontsize"].as_i64().unwrap_or(12) as u16;
 
     if dialog_path.is_some() && dialog_x.is_some() && dialog_y.is_some() && dialog_w.is_some() && dialog_h.is_some() && text_x.is_some() && text_y.is_some() && text_w.is_some() && text_h.is_some() && font.is_some() {
         let tex_id = gs.texture_manager.load_texture(dialog_path.unwrap());
         let renderbox = sdl2::rect::Rect::new(dialog_x.unwrap(), dialog_y.unwrap(), dialog_w.unwrap(), dialog_h.unwrap());
         let textbox = sdl2::rect::Rect::new(text_x.unwrap(), text_y.unwrap(), text_w.unwrap(), text_h.unwrap());
 
-        let font = ttf_context.load_font(font.unwrap(), 20).unwrap();
+        let font = ttf_context.load_font(font.unwrap(), fontsize).unwrap();
         gs.dialog = Some((tex_id, renderbox, textbox, font));
     }
 
