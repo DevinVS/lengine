@@ -26,6 +26,7 @@ use game::animation::{AnimationSystem, AnimationComponent, Animation};
 use game::effect::EffectSystem;
 use game::actions::{ShowDialog, AddState, RemoveState, Action};
 
+
 fn main() {
     // Create context and relevant subsystems
     let sdl2_context = sdl2::init().unwrap();
@@ -57,7 +58,7 @@ fn main() {
         mut animation_system,
         mut graphics_system,
         mut state_system
-    ) = load_yaml("./game.yml", texture_manager, &mut canvas, controller_subsystem, &mut ttf_context);
+    ) = load_yaml_string(include_str!("../game.yml"), texture_manager, &mut canvas, controller_subsystem, &mut ttf_context);
 
     // Run Game Loop
     loop {
@@ -85,13 +86,18 @@ fn main() {
     }
 }
 
-    fn load_yaml<'a>(path: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>, StateSystem) {
+fn load_yaml_file<'a>(path: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>, StateSystem) {
     let file = File::open(path).unwrap();
     let mut reader = BufReader::new(file);
     let mut contents = String::new();
     reader.read_to_string(&mut contents).unwrap();
 
-    let docs = YamlLoader::load_from_str(&contents).unwrap();
+    load_yaml_string(&contents, texture_manager, canvas, gs, ttf_context)
+}
+
+    fn load_yaml_string<'a>(contents: &str, mut texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>, gs: GameControllerSubsystem, ttf_context: &'a mut Sdl2TtfContext) -> (World, InputSystem, PhysicsSystem, EffectSystem, AnimationSystem, GraphicsSystem<'a>, StateSystem) {
+
+    let docs = YamlLoader::load_from_str(contents).unwrap();
     let doc = &docs[0];
 
     let world = world_from_yaml(doc, &mut texture_manager);
