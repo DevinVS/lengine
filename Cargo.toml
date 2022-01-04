@@ -2,6 +2,7 @@
 name = "game"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [lib]
 name = "game"
@@ -12,17 +13,18 @@ path = "src/lib.rs"
 [dependencies]
 itertools = "*"
 yaml-rust = "0.4"
-notify = "*"
 
-[dependencies.sdl2]
-version = "0.35.1"
+[target.'cfg(target_os = "linux")'.dependencies.sdl2]
+version = "0.35"
 default-features = false
-features = ["ttf","image","static-link","use-vcpkg"]
+features = ["ttf","image"]
 
-[package.metadata.vcpkg]
-dependencies = ["sdl2", "sdl2-image[libjpeg-turbo,tiff,libwebp]", "sdl2-ttf"]
-git = "https://github.com/microsoft/vcpkg"
-rev = "261c458af6e3eed5d099144aff95d2b5035f656b"
+[target.'cfg(target_os = "windows")'.dependencies.sdl2]
+version = "0.35"
+default-features = false
+features = ["ttf","image"]
 
-[package.metadata.vcpkg.target]
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-md" }
+[target.'cfg(target_os = "macos")'.dependencies.sdl2]
+version = "0.35"
+default-features = false
+features = ["ttf","image","use_mac_framework"]
