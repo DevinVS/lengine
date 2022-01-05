@@ -54,87 +54,19 @@ entities:
         w: 12
         h: 17
     animations:
-      - animation:
-          state: "idle"
-          period: 1.0
-          textures:
-            - path: "./assets/timmy_innit.png"
-      - animation:
-          state: "walking"
-          period: 0.1
-          textures:
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 0
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 18
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 36
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 54
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 72
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 90
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 108
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 126
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 144
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 162
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 180
-              y: 0
-              w: 12
-              h: 17
-          - path: "./assets/timmy_walking.png"
-            srcbox:
-              x: 198
-              y: 0
-              w: 12
-              h: 17
+      - state: "idle"
+        period: 1.0
+        path: "./assets/timmy_innit.png"
+      - state: "walking"
+        period: 0.1
+        path: "./assets/timmy_walking.png"
+        srcbox:
+          x: 0
+          y: 0
+          w: 12
+          h: 17
+        frame_width: 18
+        frame_count: 12
   # Sign
   - position:
       x: 50.0
@@ -153,61 +85,25 @@ entities:
         w: 16
         h: 16
     animations:
-      - animation:
-          state: "burn"
-          period: 0.1
-          after:
-            - type: "remove_state"
-              state: "burn"
-            - type: "add_state"
-              state: "burnt"
-            - type: "remove_state"
-              state: "msg1"
-            - type: "remove_state"
-              state: "msg2"
-          textures:
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 0
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 16
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 32
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 48
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 64
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 80
-                y: 0
-                w: 16
-                h: 16
-            - path: "./assets/sign_darken.png"
-              srcbox:
-                x: 96
-                y: 0
-                w: 16
-                h: 16
+      - state: "burn"
+        path: "./assets/sign_darken.png"
+        period: 0.1
+        srcbox:
+          x: 0
+          y: 0
+          w: 16
+          h: 16
+        frame_width: 16
+        frame_count: 7
+        after:
+          - type: "remove_state"
+            state: "burn"
+          - type: "add_state"
+            state: "burnt"
+          - type: "remove_state"
+            state: "msg1"
+          - type: "remove_state"
+            state: "msg2"
     events:
       - states:
         - "interact"

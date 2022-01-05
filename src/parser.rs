@@ -199,13 +199,26 @@ fn parse_dialog(yaml: &Yaml) -> Option<(String, Dialog)> {
 fn parse_animation(yaml: &Yaml, texture_manager: &mut TextureManager) -> Option<(String, Animation)> {
     let state = parse_string(&yaml["state"]);
     let period = parse_f32(&yaml["period"]);
-
-    let textures: Vec<(usize, Option<sdl2::rect::Rect>)> = yaml["textures"].as_vec().unwrap_or(&Vec::new())
-        .iter()
-        .filter_map(|y| parse_texture(y, texture_manager))
-        .collect();
-
     let after = parse_sequence(&yaml["after"]);
+
+    let texture = parse_texture(&yaml, texture_manager);
+    let frame_width = parse_u32_or(&yaml["frame_width"], 0);
+    let frame_count = parse_u32_or(&yaml["frame_count"], 1);
+
+    println!("{:?}, {:?}, {:?}", texture, frame_width, frame_count);
+
+    let textures: Vec<(usize, Option<sdl2::rect::Rect>)> = (0..frame_count)
+        .filter_map(|frame_num| {
+            if let Some(tex) = texture {
+                Some((tex.0, tex.1.map(|mut b| {
+                    b.x += frame_num as i32 * frame_width as i32;
+                    b
+                })))
+            } else {
+                None
+            }
+        })
+        .collect();
 
     if state.is_none() || period.is_none() || textures.len() == 0 {
         None
@@ -300,7 +313,7 @@ fn parse_animations_component(yaml: &Yaml, texture_manager: &mut TextureManager)
     } else {
         a_iter.unwrap().iter()
             .for_each(|y| {
-                let (state, animation) = parse_animation(&y["animation"], texture_manager).unwrap();
+                let (state, animation) = parse_animation(&y, texture_manager).unwrap();
                 animations.insert(state, animation);
             });
 
