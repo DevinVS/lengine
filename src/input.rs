@@ -95,10 +95,10 @@ impl InputSystem {
                         .after_position(&pos)
                         .after_depth(physics_state.depth);
 
-                    r.x -= 2.0;
-                    r.w += 4;
+                    r.x -= 3.0;
+                    r.w += 6;
                     r.y -= 3.0;
-                    r.h += 3;
+                    r.h += 6;
 
                     world.effects.push(Effect::new(
                         "interact".to_string(),
