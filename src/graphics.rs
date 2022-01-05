@@ -253,9 +253,17 @@ impl<'a> GraphicsSystem<'a> {
             }
         }
 
+        // Draw background if exists
+        if let Some(background) = world.background.as_ref() {
+            let pos = PositionComponent::new(-self.camera.x*self.camera.zoom as f32, -self.camera.y*self.camera.zoom as f32);
+            let renderbox = background.renderbox.after_position(&pos).sdl2();
+            let tex = self.texture_manager.get_texture(background.texture_id).unwrap();
+            self.canvas.copy(tex, None, renderbox).unwrap();
+        }
+
         let mut drawables: Vec<(usize, (_, &PositionComponent, &GraphicsComponent))> = world.graphics().collect();
 
-
+        // Sort entities by the bottom of their rects
         drawables.sort_by_key(|e| {
             let r = e.1.2.renderbox.after_position(e.1.1);
             r.y as i32+r.h as i32

@@ -3,7 +3,7 @@ use std::io::Read;
 
 use yaml_rust::{Yaml, YamlLoader};
 use crate::state::Sequence;
-use crate::{actions::{Action, AddState, RemoveState, ShowDialog}, geometry::{Rect, PositionComponent}, physics::PhysicsComponent, graphics::{GraphicsComponent, TextureManager, Camera}, animation::{AnimationComponent, Animation}, state::ActionComponent, map::WorldMap, dialog::Dialog};
+use crate::{actions::{Action, AddState, RemoveState, ShowDialog}, geometry::{Rect, PositionComponent}, physics::PhysicsComponent, graphics::{GraphicsComponent, TextureManager, Camera}, animation::{AnimationComponent, Animation}, state::ActionComponent, dialog::Dialog};
 use crate::world::World;
 use crate::graphics::GraphicsConfig;
 
@@ -363,8 +363,8 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
     let doc = &docs[0];
 
     // World
-    let map = WorldMap::new();
-    let mut world = World::new(map);
+    let background = parse_graphics_component(&doc["world"]["background"], texture_manager);
+    let mut world = World::new(background);
 
     // Parse the System Configs
     let graphics_config = parse_graphics_config(&doc["graphics"]);

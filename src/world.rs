@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use itertools::izip;
 
-use crate::map::WorldMap;
 use crate::geometry::PositionComponent;
 use crate::physics::PhysicsComponent;
 use crate::graphics::GraphicsComponent;
@@ -14,9 +13,6 @@ use crate::dialog::Dialog;
 
 /// Struct containing all game data and current state
 pub struct World {
-    /// World Map, currently nothing
-    _map: WorldMap,
-
     /// Entity who is controllable and interacts with other objects
     pub player_id: Option<usize>,
 
@@ -28,6 +24,9 @@ pub struct World {
 
     /// Currently selected dialog index
     pub curr_dialog: Option<String>,
+
+    /// Background texture and renderbox
+    pub background: Option<GraphicsComponent>,
 
     // Entity Components
 
@@ -47,9 +46,8 @@ pub struct World {
 
 impl World {
     /// Create a new world
-    pub fn new(map: WorldMap) -> World {
+    pub fn new(background: Option<GraphicsComponent>) -> World {
         World {
-            _map :map,
             player_id: None,
             states: Vec::new(),
             positions: Vec::new(),
@@ -59,7 +57,8 @@ impl World {
             actions: Vec::new(),
             effects: Vec::new(),
             dialogs: HashMap::new(),
-            curr_dialog: None
+            curr_dialog: None,
+            background
         }
     }
 

@@ -1,7 +1,6 @@
 pub mod graphics;
 pub mod input;
 pub mod world;
-pub mod map;
 pub mod effect;
 pub mod physics;
 pub mod animation;
