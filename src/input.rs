@@ -72,7 +72,7 @@ impl InputSystem {
 
         // If a dialog exists, process no future input and instead wait for the e key
         if let Some(dialog) = world.current_dialog() {
-            if self.key_state.contains(&Keycode::E) {
+            if self.key_state.contains(&Keycode::E) || self.button_state.contains(&Button::A) {
                 if dialog.finished() {
                     dialog.next();
                     world.curr_dialog = None;
@@ -82,6 +82,7 @@ impl InputSystem {
 
 
                 self.key_state.remove(&Keycode::E);
+                self.button_state.remove(&Button::A);
             }
 
             return;
@@ -90,7 +91,7 @@ impl InputSystem {
         if let Some(player) = world.player_id {
             if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
                 // If the interact key is pressed try to interact with the object that is in front of us
-                if self.key_state.contains(&Keycode::E) {
+                if self.key_state.contains(&Keycode::E) || self.button_state.contains(&Button::A) {
                     let mut r = physics_state.hitbox
                         .after_position(&pos)
                         .after_depth(physics_state.depth);
@@ -107,7 +108,8 @@ impl InputSystem {
                     ));
 
                     self.key_state.remove(&Keycode::E);
-                } else if self.key_state.contains(&Keycode::F) {
+                    self.button_state.remove(&Button::A);
+                } else if self.key_state.contains(&Keycode::F) || self.button_state.contains(&Button::B) {
                     let mut r = physics_state.hitbox
                         .after_position(&pos)
                         .after_depth(physics_state.depth);
@@ -124,6 +126,7 @@ impl InputSystem {
                     ));
 
                     self.key_state.remove(&Keycode::F);
+                    self.button_state.remove(&Button::B);
                 }
 
                 // If joystick connected and its values beyond the deadzone use it, otherwise
@@ -133,7 +136,7 @@ impl InputSystem {
                 let (x, y) = if self.controller.is_some() {
                     let (x, y) = self.joystick_velocity();
 
-                    if x < 0.01 && y < 0.01 {
+                    if x.abs() < 0.01 && y.abs() < 0.01 {
                         self.button_velocity()
                     } else {
                         (x, y)
