@@ -21,7 +21,6 @@ pub struct AddState {
 impl Actionable for AddState {
     fn tick(&mut self, states: &mut HashSet<String>, _: &mut Vec<Effect>, _: &mut Option<String>) {
         states.insert(self.state.clone());
-        println!("add {}", self.state);
     }
 }
 
@@ -37,7 +36,6 @@ pub struct RemoveState {
 impl Actionable for RemoveState {
     fn tick(&mut self, states: &mut HashSet<String>, _: &mut Vec<Effect>, _: &mut Option<String>) {
         states.remove(&self.state);
-        println!("remove {}", self.state);
     }
 }
 
@@ -68,7 +66,6 @@ pub struct ShowDialog {
 impl Actionable for ShowDialog {
     fn tick(&mut self, _: &mut HashSet<String>, _: &mut Vec<Effect>, dialog: &mut Option<String>) {
         *dialog = Some(self.dialog.clone());
-        println!("show {}", self.dialog);
     }
 }
 
