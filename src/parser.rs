@@ -1,4 +1,79 @@
 #![allow(dead_code)]
+//! Functions to parse a world file
+//!
+//! A world file is a yaml file with the following structure:
+//!
+//! ```yaml
+//! graphics:           # Configuration for GraphicsSystem
+//!   camera:           # World Camera
+//!     x: f32          # x position of camera in world coords (default 0)
+//!     y: f32          # y position of camera in world coords (default 0)
+//!     w: u32          # width of camera viewport in screen pixels (default 800)
+//!     h: u32          # height of camera viewport in screen pixels (default 600)
+//!     zoom: u32       # camera zoom, scalar factor of world units to screen pixels (default 5)
+//!   dialog:           # Configuration for rendering a dialog
+//!     path: string    # Path to dialog texture
+//!     font: string    # Path to dialog font
+//!     fontsize: u32   # Fontsize
+//!     renderbox:      # Box to render dialog texture into
+//!       x: i32        # x position in screen coordinates
+//!       y: i32        # y position in screen coordinates
+//!       w: u32        # width in screen coordinates
+//!       h: u32        # height in scren coordinates
+//!     textbox:        # Box to render text into
+//!       x: i32        # x position in screen coordinates
+//!       y: i32        # y position ins screen coordinates
+//!       w: u32        # width in screen coordinates
+//!       h: u32        # height in screen coordinates
+//! dialogs:            # List of dialogs that can be displayed to the scren
+//!   - name: string    # Name of the dialog
+//!     messages:       # List of messages to be displayed sequentially
+//!       - string      # A single message
+//! entitites:          # List of all entities in the world
+//!   - state: string   # Default starting state (default none)
+//!     player: bool    # Whether this entity is a player (default false)
+//!     position:       # Position component for a single entity
+//!       x: f32        # x position in world coords
+//!       y: f32        # y position in world coords
+//!     physics:        # Physics component (requires position)
+//!       hitbox:       # Hitbox of player, acts as an offset of the position
+//!         x: f32      # x offset of hitbox (default 0)
+//!         y: f32      # y offset of hitbox (default 0)
+//!         w: u32      # width of hitbox
+//!         h: u32      # height of hitbox
+//!       depth: u32    # Depth in the world of the player, replaces height in hitbox (default height)
+//!     graphics:       # Graphics Component (requres position)
+//!       path: string  # Path of the default texture
+//!       renderbox:    # Box to render to the world, acts as offset on position
+//!         x: f32      # x offset of renderbox in world coordinates (default 0)
+//!         y: f32      # y offset of renderbox in world coordinates (default 0)
+//!         w: u32      # width of renderbox in world coordinates
+//!         h: u32      # height of renderbox in world coordinates
+//!       srcbox:       # Rectangle to read from the texture
+//!         x: i32      # x position in texture
+//!         y: i32      # y position in texture
+//!         w: u32      # width of texture
+//!         h: u32      # height of texture
+//!     animations:     # List of animations that the entity can have
+//!       - state: string   # State which triggers the animation
+//!         period: f32     # Time until the animation switches to the next texture
+//!         path: string    # Path to the animation texture
+//!         srcbox:         # Rectangle source for the first frame of the texture (default none)
+//!           x: i32        # x coordinate of srcbox
+//!           y: i32        # y coordinate of srcbox
+//!           w: u32        # height of srcbox
+//!           h: u32        # width of srcbox
+//!         frame_width: u32    # width of a single frame
+//!         frame_count: u32    # Number of animation frames
+//!     events:         # List of events that can occur for this entity
+//!       - states:     # List of necessary states which trigger the event
+//!         - string    # A state string
+//!         actions:    # list of actions which will run once triggered
+//!           - type: string    # Type of action to run, options: add_state, remove_state, show_dialog
+//!             state: string   # State to add/remove
+//!             dialog: string  # dialog to show
+//!             delay: f32      # delay after the last action until this runs (default 0)
+//! ```
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -204,8 +279,6 @@ fn parse_animation(yaml: &Yaml, texture_manager: &mut TextureManager) -> Option<
     let texture = parse_texture(&yaml, texture_manager);
     let frame_width = parse_u32_or(&yaml["frame_width"], 0);
     let frame_count = parse_u32_or(&yaml["frame_count"], 1);
-
-    println!("{:?}, {:?}, {:?}", texture, frame_width, frame_count);
 
     let textures: Vec<(usize, Option<sdl2::rect::Rect>)> = (0..frame_count)
         .filter_map(|frame_num| {
