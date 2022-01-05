@@ -24,7 +24,6 @@ fn main() {
 
     // Create graphics objects such as window, canvas, and texture manager
     let window = video_subsystem.window("title", 800, 600)
-        .vulkan()
         .maximized()
         .build()
         .unwrap();
