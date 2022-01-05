@@ -1,4 +1,5 @@
 graphics:
+  debug: true
   camera:
     x: 0.0
     y: 0.0
@@ -20,10 +21,22 @@ graphics:
       w: 720
       h: 60
 dialogs:
-  - name: "test"
+  - name: "msg1"
     messages:
       - "Hello World. Welcome to the demo of the game."
-      - "Please Enjoy."
+    after:
+      - type: "add_state"
+        state: "msg2"
+      - type: "remove_state"
+        state: "msg1"
+  - name: "msg2"
+    messages:
+      - "Not much to do here, is there?"
+    after:
+      - type: "add_state"
+        state: "msg2"
+      - type: "remove_state"
+        state: "msg1"
 entities:
   # Timmy
   - position:
@@ -131,6 +144,7 @@ entities:
   - position:
       x: 50.0
       y: 0.0
+    state: "msg1"
     physics:
       hitbox:
         x: 7.0
@@ -144,9 +158,19 @@ entities:
         w: 16
         h: 16
     events:
-      - state: "interact"
+      - states:
+        - "interact"
+        - "msg1"
         actions:
           - type: "dialog"
-            dialog: "test"
+            dialog: "msg1"
+          - type: "remove_state"
+            state: "interact"
+      - states:
+        - "interact"
+        - "msg2"
+        actions:
+          - type: "dialog"
+            dialog: "msg2"
           - type: "remove_state"
             state: "interact"

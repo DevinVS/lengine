@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use crate::world::World;
 use crate::actions::Action;
 
 /// A sequence of actions, to be run in order after specified delays
+#[derive(Debug)]
 pub struct Sequence {
     /// Last time the curr_index switched
     last_switch: Instant,
@@ -38,34 +39,45 @@ impl Sequence {
 
     /// Check the current delay, moving the index only after the delay has passed
     pub fn tick(&mut self) {
-        if self.last_switch.elapsed().as_secs_f32() >= self.actions[self.curr_index].0 {
-            if self.curr_index == self.actions.len()-1 {
-                self.curr_index = 0;
-            } else {
-                self.curr_index += 1;
-            }
+        if self.curr_index == self.actions.len()-1 {
+            self.curr_index = 0;
+        } else {
+            self.curr_index += 1;
         }
+    }
+
+    pub fn ready(&mut self) -> bool {
+        self.last_switch.elapsed().as_secs_f32() >= self.actions[self.curr_index].0
     }
 }
 
 
 /// Data about triggers and actions for a specific entity
+#[derive(Debug)]
 pub struct ActionComponent {
     /// Map of states and the sequence of actions to run for that state
-    actions: HashMap<String, Sequence>
+    actions: HashMap<Vec<String>, Sequence>
 }
 
 impl ActionComponent {
     /// Create a new ActionComponent
-    pub fn new(actions: HashMap<String, Sequence>) -> ActionComponent {
+    pub fn new(actions: HashMap<Vec<String>, Sequence>) -> ActionComponent {
         ActionComponent {
             actions
         }
     }
 
-    /// Get an action for a specific state
-    pub fn get_mut(&mut self, state: &String) -> Option<&mut Sequence> {
-        self.actions.get_mut(state)
+    /// Get all applicable actions for a set of states
+    pub fn get_mut(&mut self, states: &HashSet<String>) -> Vec<&mut Sequence> {
+        let mut res = Vec::new();
+
+        for (required_states, sequence) in self.actions.iter_mut() {
+            if required_states.iter().all(|e| states.contains(e)) {
+                res.push(sequence);
+            }
+        }
+
+        res
     }
 }
 
@@ -82,10 +94,14 @@ impl StateSystem {
     pub fn run(&mut self, world: &mut World) {
         for i in 0..world.states.len() {
             if world.actions[i].is_some() {
-                for state in world.states[i].clone().iter() {
-                    if let Some(sequence) = world.actions[i].as_mut().unwrap().get_mut(state) {
+                for sequence in world.actions[i].as_mut().unwrap().get_mut(&world.states[i]) {
+                    while sequence.ready() {
                         sequence.current().tick(&mut world.states[i], &mut world.effects, &mut world.curr_dialog);
                         sequence.tick();
+
+                        if sequence.curr_index==0 {
+                            break;
+                        }
                     }
                 }
             }

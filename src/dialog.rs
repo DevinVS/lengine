@@ -1,4 +1,5 @@
 /// Represents a Dialog interaction with the player
+#[derive(Debug)]
 pub struct Dialog {
     /// Messages to display, in order that they will be displayed
     messages: Vec<String>,

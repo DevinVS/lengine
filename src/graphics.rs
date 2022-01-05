@@ -4,6 +4,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::render::TextureQuery;
 use sdl2::ttf::Font;
+use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::{Window, WindowContext};
 use sdl2::image::LoadTexture;
 use sdl2::render::Texture;
@@ -40,6 +41,7 @@ impl GraphicsComponent {
 }
 
 /// Camera to view the game world through
+#[derive(Debug)]
 pub struct Camera {
     /// x coordinate of the camera in the game world
     pub x: f32,
@@ -122,6 +124,46 @@ impl<'a> TextureManager<'a> {
     }
 }
 
+/// Configuration for the graphics system,
+/// created by parsing yaml file
+#[derive(Debug)]
+pub struct GraphicsConfig {
+    pub camera: Camera,
+    pub debug: bool,
+    pub dialog_tex_path: Option<String>,
+    pub dialog_font_path: Option<String>,
+    pub dialog_font_size: Option<u16>,
+    pub dialog_textbox: Option<sdl2::rect::Rect>,
+    pub dialog_renderbox: Option<sdl2::rect::Rect>
+}
+
+/// Configuration for rendering the Dialog
+pub struct DialogConfig<'a> {
+    tex_id: usize,
+    renderbox: sdl2::rect::Rect,
+    textbox: sdl2::rect::Rect,
+    font: Font<'a, 'a>
+}
+
+impl<'a> DialogConfig<'a> {
+    /// Create a DialogConfig from a GraphicsConfig struct
+    fn from_graphics_config(gc: &GraphicsConfig, texture_manager: &mut TextureManager, ttf_context: &'a Sdl2TtfContext) -> Option<DialogConfig<'a>> {
+        if gc.dialog_tex_path.is_none() || gc.dialog_font_path.is_none() || gc.dialog_font_size.is_none() || gc.dialog_renderbox.is_none() || gc.dialog_textbox.is_none() {
+            None
+        } else {
+            let tex_id = texture_manager.load_texture(gc.dialog_tex_path.as_ref().unwrap());
+            let font = ttf_context.load_font(gc.dialog_font_path.as_ref().unwrap(), gc.dialog_font_size.unwrap()).unwrap();
+
+            Some(DialogConfig {
+                tex_id,
+                font,
+                renderbox: gc.dialog_renderbox.unwrap(),
+                textbox: gc.dialog_textbox.unwrap()
+            })
+        }
+    }
+}
+
 
 /// The actual rendering system, uses GraphicsState
 pub struct GraphicsSystem<'a> {
@@ -133,19 +175,22 @@ pub struct GraphicsSystem<'a> {
     pub camera: Camera,
     /// Display debug information such as hitboxes
     pub debug: bool,
-    /// Currently rendered dialog box
-    pub dialog: Option<(usize, sdl2::rect::Rect, sdl2::rect::Rect, Font<'a, 'a>)>,
+    /// Dialog Settings
+    /// (texture id, renderbox, textbox, Font)
+    pub dialog: Option<DialogConfig<'a>>,
 }
 
 impl<'a> GraphicsSystem<'a> {
-    /// Create a new GraphicsSystem
-    pub fn new(texture_manager: TextureManager<'a>, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
+    /// Create a new GraphicsSystem from a GraphicsConfig
+    pub fn new(config: GraphicsConfig, mut texture_manager: TextureManager<'a>, ttf_context: &'a Sdl2TtfContext, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
+        let dialog_config = DialogConfig::from_graphics_config(&config, &mut texture_manager, ttf_context);
+
         GraphicsSystem {
             texture_manager,
             canvas,
-            camera: Camera {x: 0.0, y: 0.0, w: 800, h: 600, zoom: 5},
-            debug: false,
-            dialog: None,
+            camera: config.camera,
+            debug: config.debug,
+            dialog: dialog_config
         }
     }
 
@@ -252,13 +297,22 @@ impl<'a> GraphicsSystem<'a> {
         let top_offset = ((screen_height - self.camera.h) / 2) as i32;
 
         // Draw Box
-        let (tex_id, r, t, font) = self.dialog.as_ref().unwrap();
-        let tex = self.texture_manager.get_texture(*tex_id).unwrap();
-        self.canvas.copy(tex, None, sdl2::rect::Rect::new(left_offset+r.x, top_offset+r.y, r.width(), r.height())).unwrap();
+        let d = self.dialog.as_ref().unwrap();
+        let tex = self.texture_manager.get_texture(d.tex_id).unwrap();
+        self.canvas.copy(
+            tex,
+            None,
+            sdl2::rect::Rect::new(
+                left_offset+d.renderbox.x,
+                top_offset+d.renderbox.y,
+                d.renderbox.width(),
+                d.renderbox.height()
+            )
+        ).unwrap();
 
         // Draw Text
         let msg = dialog.msg();
-        let surface = font.render(&msg).blended_wrapped((46, 53, 42), t.width()).unwrap();
+        let surface = d.font.render(&msg).blended_wrapped((46, 53, 42), d.textbox.width()).unwrap();
         let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
 
         let TextureQuery { width, height, .. } = tex.query();
@@ -267,8 +321,8 @@ impl<'a> GraphicsSystem<'a> {
             &tex,
             None,
             sdl2::rect::Rect::new(
-                left_offset+r.x+t.x,
-                top_offset+r.y+t.y,
+                left_offset+d.renderbox.x+d.textbox.x,
+                top_offset+d.renderbox.y+d.textbox.y,
                 width,
                 height
             )
