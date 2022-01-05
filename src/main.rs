@@ -11,7 +11,7 @@ use sdl2::image::InitFlag;
 use sdl2::keyboard::Keycode;
 
 use game::graphics::{TextureManager, GraphicsSystem};
-use game::parser::parse_game_file;
+use game::parser::parse_game_string;
 
 
 fn main() {
@@ -37,7 +37,7 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let mut texture_manager = TextureManager::new(&texture_creator);
 
-    let (mut world, graphics_config) = parse_game_file("./game.yml", &mut texture_manager);
+    let (mut world, graphics_config) = parse_game_string(include_str!("../game.yml"), &mut texture_manager);
 
     // Create Game Systems
     let mut input_system = InputSystem::new(controller_subsystem);

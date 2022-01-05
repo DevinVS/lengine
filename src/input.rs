@@ -107,6 +107,23 @@ impl InputSystem {
                     ));
 
                     self.key_state.remove(&Keycode::E);
+                } else if self.key_state.contains(&Keycode::F) {
+                    let mut r = physics_state.hitbox
+                        .after_position(&pos)
+                        .after_depth(physics_state.depth);
+
+                    r.x -= 2.0;
+                    r.w += 4;
+                    r.y -= 3.0;
+                    r.h += 3;
+
+                    world.effects.push(Effect::new(
+                        "burn".to_string(),
+                        Rect::new(r.x, r.y-5.0,r.w, r.h+5),
+                        Some(0.0)
+                    ));
+
+                    self.key_state.remove(&Keycode::F);
                 }
 
                 // If joystick connected and its values beyond the deadzone use it, otherwise

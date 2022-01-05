@@ -1,6 +1,7 @@
 use crate::world::World;
 use std::time::Instant;
 use std::collections::HashMap;
+use crate::state::Sequence;
 
 /// A Graphical Animation across multiple textures
 #[derive(Debug)]
@@ -12,17 +13,20 @@ pub struct Animation {
     /// Current state index
     curr_tex_index: usize,
     /// Time that the state last changed
-    last_switch: Instant
+    last_switch: Instant,
+    /// Actions to run after animation completes
+    after: Option<Sequence>
 }
 
 impl Animation {
     /// Create a new Animation
-    pub fn new(states: Vec<(usize, Option<sdl2::rect::Rect>)>, period: f32) -> Animation {
+    pub fn new(states: Vec<(usize, Option<sdl2::rect::Rect>)>, period: f32, after: Option<Sequence>) -> Animation {
         Animation {
             states,
             period,
             curr_tex_index: 0,
-            last_switch: Instant::now()
+            last_switch: Instant::now(),
+            after
         }
     }
 
@@ -107,18 +111,35 @@ impl AnimationSystem {
 
     /// Play the most relevant animations based on state
     pub fn run(&mut self, world: &mut World) {
-        for (_, (states, _, graphics, animations)) in world.animations_mut() {
+        for i in 0..world.states.len() {
+            let states = &mut world.states[i];
+            let graphics = &mut world.graphics[i];
+            let animations = &mut world.animations[i];
+
+            if graphics.is_none() || animations.is_none() {continue;}
+            let graphics = graphics.as_mut().unwrap();
+            let animations = animations.as_mut().unwrap();
+
             // Find the state which determines the animation
             for state in states.iter() {
-                if let Some(animation) = animations.get_mut(state) {
+                let animation = animations.animations.get_mut(state);
 
+                if animation.is_some() {
+                    let animation = animation.unwrap();
                     animation.tick();
+
                     graphics.texture_id = animation.current_texture();
                     graphics.srcbox = animation.current_srcbox();
                     animations.curr_key = Some(state.clone());
+
+                    if animation.after.is_some() && animation.curr_tex_index == animation.states.len()-1 {
+                        animation.after.as_mut().unwrap().run_all(states, &mut world.effects, &mut world.curr_dialog);
+                    }
+
                     break;
                 }
             }
+
         }
     }
 }

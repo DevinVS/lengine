@@ -196,10 +196,12 @@ fn parse_animation(yaml: &Yaml, texture_manager: &mut TextureManager) -> Option<
         .filter_map(|y| parse_texture(y, texture_manager))
         .collect();
 
+    let after = parse_sequence(&yaml["after"]);
+
     if state.is_none() || period.is_none() || textures.len() == 0 {
         None
     } else {
-        Some((state.unwrap(), Animation::new(textures, period.unwrap())))
+        Some((state.unwrap(), Animation::new(textures, period.unwrap(), after)))
     }
 }
 
