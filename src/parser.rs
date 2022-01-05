@@ -1,11 +1,20 @@
-use std::{fs::File, collections::HashMap};
+#![allow(dead_code)]
+
+use std::collections::HashMap;
+use std::fs::File;
 use std::io::Read;
 
 use yaml_rust::{Yaml, YamlLoader};
-use crate::state::Sequence;
-use crate::{actions::{Action, AddState, RemoveState, ShowDialog}, geometry::{Rect, PositionComponent}, physics::PhysicsComponent, graphics::{GraphicsComponent, TextureManager, Camera}, animation::{AnimationComponent, Animation}, state::ActionComponent, dialog::Dialog};
+
 use crate::world::World;
-use crate::graphics::GraphicsConfig;
+use crate::geometry::{Rect, PositionComponent};
+use crate::physics::PhysicsComponent;
+use crate::graphics::{GraphicsComponent, GraphicsConfig, TextureManager, Camera};
+use crate::animation::{AnimationComponent, Animation};
+use crate::state::{ActionComponent, Sequence};
+use crate::actions::{Action, AddState, RemoveState, ShowDialog};
+use crate::dialog::Dialog;
+
 
 /// Parse yaml into an f32
 /// Acceps either an integer or a floating point as input

@@ -1,17 +1,21 @@
 use std::{collections::HashSet, fmt::Debug};
 use crate::effect::Effect;
 
-/// An action is activated by the ActionSystem.
-/// When an entity has a state which maps to an action,
-/// the action is run
+/// Trait to define an action caused by a change in state or world event
+///
+/// An action is able to modify the states of the entity who spawned it, the global effects in the
+/// current world, or the currently displayed Dialog.
+/// Most commonly actions coincide with a set of states defined on an entity in an ActionComponent,
+/// but actions can also be spawned after certain events have finished, such as an animation
 pub trait Actionable {
-    /// Run the desired action
+    /// Run the desired action, modifying entity state, world effects, or the current dialog
     fn tick(&mut self, states: &mut HashSet<String>, effects: &mut Vec<Effect>, dialog: &mut Option<String>);
 }
 
+/// Wrapper trait to allow printing of actions
 pub trait Action: Actionable + Debug {}
 
-/// Add an additional state to the current entity
+/// An action which adds a state to the entity who spawned it
 #[derive(Debug)]
 pub struct AddState {
     /// State to add
@@ -26,7 +30,7 @@ impl Actionable for AddState {
 
 impl Action for AddState {}
 
-/// Remove a state from the current entity
+/// An action which remove a state from the entity who spawned it
 #[derive(Debug)]
 pub struct RemoveState {
     /// State to remove
@@ -41,7 +45,7 @@ impl Actionable for RemoveState {
 
 impl Action for RemoveState {}
 
-/// Add an effect to the world
+/// An action which adds an effect to the world
 #[derive(Debug)]
 pub struct AddEffect {
     /// Effect to add
@@ -56,7 +60,7 @@ impl Actionable for AddEffect {
 
 impl Action for AddEffect {}
 
-/// Show a dialog box
+/// An action which shows a dialog box
 #[derive(Debug)]
 pub struct ShowDialog {
     /// Name of dialog to display
