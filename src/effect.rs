@@ -46,11 +46,11 @@ impl EffectSystem {
     /// have finished, then apply the appropriate states
     /// to every entity inside each effect
     pub fn run(&mut self, world: &mut World) {
+        world.apply_effects();
+
         world.effects = world.effects.iter()
             .filter(|e| !e.finished())
             .map(|e| e.clone())
             .collect();
-
-        world.apply_effects();
     }
 }

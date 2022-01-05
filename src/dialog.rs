@@ -4,7 +4,7 @@ pub struct Dialog {
     /// Messages to display, in order that they will be displayed
     messages: Vec<String>,
     /// Index of the current message to display
-    curr_msg: usize
+    curr_msg: usize,
 }
 
 impl Dialog {
@@ -12,7 +12,7 @@ impl Dialog {
     pub fn new(messages: Vec<String>) -> Dialog {
         Dialog {
             messages,
-            curr_msg: 0
+            curr_msg: 0,
         }
     }
 

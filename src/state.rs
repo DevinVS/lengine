@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use crate::world::World;
 use crate::actions::Action;
+use crate::effect::Effect;
 
 /// A sequence of actions, to be run in order after specified delays
 #[derive(Debug)]
@@ -48,6 +49,12 @@ impl Sequence {
 
     pub fn ready(&mut self) -> bool {
         self.last_switch.elapsed().as_secs_f32() >= self.actions[self.curr_index].0
+    }
+
+    pub fn run_all(&mut self, s: &mut HashSet<String>, e: &mut Vec<Effect>, curr_dialog: &mut Option<String>) {
+        for (_, action) in self.actions.iter_mut() {
+            action.tick(s, e, curr_dialog);
+        }
     }
 }
 

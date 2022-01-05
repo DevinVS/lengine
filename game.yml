@@ -24,19 +24,9 @@ dialogs:
   - name: "msg1"
     messages:
       - "Hello World. Welcome to the demo of the game."
-    after:
-      - type: "add_state"
-        state: "msg2"
-      - type: "remove_state"
-        state: "msg1"
   - name: "msg2"
     messages:
       - "Not much to do here, is there?"
-    after:
-      - type: "add_state"
-        state: "msg2"
-      - type: "remove_state"
-        state: "msg1"
 entities:
   # Timmy
   - position:
@@ -166,6 +156,10 @@ entities:
             dialog: "msg1"
           - type: "remove_state"
             state: "interact"
+          - type: "remove_state"
+            state: "msg1"
+          - type: "add_state"
+            state: "msg2"
       - states:
         - "interact"
         - "msg2"
@@ -174,3 +168,7 @@ entities:
             dialog: "msg2"
           - type: "remove_state"
             state: "interact"
+          - type: "remove_state"
+            state: "msg2"
+          - type: "add_state"
+            state: "msg1"

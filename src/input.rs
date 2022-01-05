@@ -103,7 +103,7 @@ impl InputSystem {
                     world.effects.push(Effect::new(
                         "interact".to_string(),
                         Rect::new(r.x, r.y-5.0,r.w, r.h+5),
-                        Some(0.1)
+                        Some(0.0)
                     ));
 
                     self.key_state.remove(&Keycode::E);

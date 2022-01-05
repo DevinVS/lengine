@@ -63,10 +63,10 @@ fn main() {
         // Run all subsystems
         input_system.run(&mut world);
         physics_system.run(&mut world);
-        effects_system.run(&mut world);
         state_system.run(&mut world);
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
+        effects_system.run(&mut world);
 
 
         // Sleep
