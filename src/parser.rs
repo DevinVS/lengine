@@ -25,10 +25,26 @@
 //!       y: i32        # y position ins screen coordinates
 //!       w: u32        # width in screen coordinates
 //!       h: u32        # height in screen coordinates
+//! inputs:             # List of player inputs and the effects they cause
+//!   - state: string   # State caused by input
+//!     key: string     # key name that causes effect
+//!     button: string  # button name that causes effect
+//!     rect:           # Rectangle for the effect
+//!       x: f32        # x offset from hitbox (default -2)
+//!       y: f32        # y offset from hitbox (default -2)
+//!       w: u32        # width offset from hitbox (default 4)
+//!       h: u32        # height offset from hitbox (default 4)
 //! dialogs:            # List of dialogs that can be displayed to the scren
 //!   - name: string    # Name of the dialog
 //!     messages:       # List of messages to be displayed sequentially
 //!       - string      # A single message
+//! background:         # Background of the world
+//!   path: string      # path to the texture
+//!   renderbox:        # Rectangle to render texture
+//!     x: f32          # x position in the world (default 0)
+//!     y: f32          # y position in the world (default 0)
+//!     w: u32          # Width in world coordinates
+//!     h: u32          # Height in world coordinates
 //! entitites:          # List of all entities in the world
 //!   - state: string   # Default starting state (default none)
 //!     player: bool    # Whether this entity is a player (default false)
@@ -79,8 +95,11 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
+use sdl2::controller::Button;
+use sdl2::keyboard::Keycode;
 use yaml_rust::{Yaml, YamlLoader};
 
+use crate::input::InputConfig;
 use crate::world::World;
 use crate::geometry::{Rect, PositionComponent};
 use crate::physics::PhysicsComponent;
@@ -412,6 +431,43 @@ fn parse_actions_component(yaml: &Yaml) -> Option<ActionComponent> {
     }
 }
 
+/// Parse yaml into input
+fn parse_input(yaml: &Yaml) -> Option<(Option<String>, Option<String>, String, Rect)> {
+    let state = parse_string(&yaml["state"]);
+    let key = parse_string(&yaml["key"]);
+    let button = parse_string(&yaml["button"]);
+
+    let rect = parse_world_rect_or(&yaml["rect"], (-2.0, -2.0, 4, 4));
+
+    if state.is_none() {
+        None
+    } else {
+        Some((key, button, state.unwrap(), rect))
+    }
+}
+
+/// Parse yaml into input config
+fn parse_input_config(yaml: &Yaml) -> InputConfig {
+    let mut config = InputConfig::new();
+
+    yaml.as_vec().unwrap_or(&Vec::new())
+        .iter()
+        .filter_map(|y| {
+            parse_input(y)
+        })
+        .for_each(|(key, button, state, rect)| {
+            if key.is_some() {
+                config.add_keymap(&key.unwrap(), state.clone(), rect);
+            }
+
+            if button.is_some() {
+                config.add_buttonmap(&button.unwrap(), state.clone(), rect);
+            }
+        });
+
+    config
+}
+
 /// Parse yaml into graphics config
 fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
     let debug = parse_bool_or(&yaml["debug"], false);
@@ -443,7 +499,7 @@ fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
 }
 
 /// Parse Game File
-pub fn parse_game_file(path: &str, texture_manager: &mut TextureManager) -> (World, GraphicsConfig) {
+pub fn parse_game_file(path: &str, texture_manager: &mut TextureManager) -> (World, InputConfig, GraphicsConfig) {
     let mut file = File::open(path).unwrap();
     let file_size = file.metadata().unwrap().len();
     let mut contents = String::with_capacity(file_size as usize);
@@ -453,15 +509,16 @@ pub fn parse_game_file(path: &str, texture_manager: &mut TextureManager) -> (Wor
 }
 
 /// Parse Game String
-pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -> (World, GraphicsConfig) {
+pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -> (World, InputConfig, GraphicsConfig) {
     let docs = YamlLoader::load_from_str(contents).unwrap();
     let doc = &docs[0];
 
     // World
-    let background = parse_graphics_component(&doc["world"]["background"], texture_manager);
+    let background = parse_graphics_component(&doc["background"], texture_manager);
     let mut world = World::new(background);
 
     // Parse the System Configs
+    let input_config = parse_input_config(&doc["inputs"]);
     let graphics_config = parse_graphics_config(&doc["graphics"]);
 
     // Parse the Entities
@@ -490,5 +547,5 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
         .filter_map(|y| parse_dialog(y))
         .for_each(|(name, dialog)| world.add_dialog(name, dialog));
 
-    (world, graphics_config)
+    (world, input_config, graphics_config)
 }

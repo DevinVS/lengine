@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use sdl2::GameControllerSubsystem;
@@ -12,9 +13,45 @@ use crate::world::World;
 use crate::effect::Effect;
 use crate::geometry::Rect;
 
+/// user defined key and button mappings to states
+#[derive(Debug)]
+pub struct InputConfig {
+    keymap: HashMap<Keycode, (String, Rect)>,
+    buttonmap: HashMap<Button, (String, Rect)>
+}
+
+impl InputConfig {
+    /// Create a new InputConfig
+    pub fn new() -> InputConfig {
+        InputConfig {
+            keymap: HashMap::new(),
+            buttonmap: HashMap::new()
+        }
+    }
+
+    /// Add a key mapping from its name
+    pub fn add_keymap(&mut self, key: &str, state: String, rect: Rect) {
+        let key = Keycode::from_name(key);
+
+        if let Some(key) = key {
+            self.keymap.insert(key, (state, rect));
+        }
+    }
+
+    /// Add button mapping from its name
+    pub fn add_buttonmap(&mut self, button: &str, state: String, rect: Rect) {
+        let button = Button::from_string(button);
+
+        if let Some(button) = button {
+            self.buttonmap.insert(button, (state, rect));
+        }
+    }
+}
+
 
 /// System to handle input devices such as keyboards, joysticks, and controllers
 pub struct InputSystem {
+    config: InputConfig,
     /// Set of all the currently pressed keys
     key_state: HashSet<Keycode>,
     /// Set of all the currently pressed buttons
@@ -29,8 +66,9 @@ pub struct InputSystem {
 
 impl InputSystem {
     /// Create a new Input System
-    pub fn new(gs: GameControllerSubsystem) -> InputSystem {
+    pub fn new(config: InputConfig, gs: GameControllerSubsystem) -> InputSystem {
         InputSystem {
+            config,
             key_state: HashSet::new(),
             button_state: HashSet::new(),
             controller_system: gs,
@@ -91,42 +129,40 @@ impl InputSystem {
         if let Some(player) = world.player_id {
             if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
                 // If the interact key is pressed try to interact with the object that is in front of us
-                if self.key_state.contains(&Keycode::E) || self.button_state.contains(&Button::A) {
-                    let mut r = physics_state.hitbox
-                        .after_position(&pos)
-                        .after_depth(physics_state.depth);
+                let player_rect = physics_state.hitbox
+                    .after_position(&pos)
+                    .after_depth(physics_state.depth);
 
-                    r.x -= 3.0;
-                    r.w += 6;
-                    r.y -= 3.0;
-                    r.h += 6;
+                for key in self.config.keymap.keys() {
+                    if self.key_state.contains(key) {
+                        let state = self.config.keymap[key].0.clone();
+                        let rect = self.config.keymap[key].1;
+                        world.effects.push(
+                            Effect::new(
+                                state.clone(),
+                                Rect::new(player_rect.x+rect.x, player_rect.y+rect.y, player_rect.w+rect.w, player_rect.h+rect.h),
+                                Some(0.0)
+                            )
+                        );
 
-                    world.effects.push(Effect::new(
-                        "interact".to_string(),
-                        Rect::new(r.x, r.y-5.0,r.w, r.h+5),
-                        Some(0.0)
-                    ));
+                        self.key_state.remove(key);
+                    }
+                }
 
-                    self.key_state.remove(&Keycode::E);
-                    self.button_state.remove(&Button::A);
-                } else if self.key_state.contains(&Keycode::F) || self.button_state.contains(&Button::B) {
-                    let mut r = physics_state.hitbox
-                        .after_position(&pos)
-                        .after_depth(physics_state.depth);
+                for button in self.config.buttonmap.keys() {
+                    if self.button_state.contains(button) {
+                        let state = self.config.buttonmap[button].0.clone();
+                        let rect = self.config.buttonmap[button].1;
+                        world.effects.push(
+                            Effect::new(
+                                state.clone(),
+                                Rect::new(player_rect.x+rect.x, player_rect.y+rect.y, player_rect.w+rect.w, player_rect.h+rect.h),
+                                Some(0.0)
+                            )
+                        );
 
-                    r.x -= 2.0;
-                    r.w += 4;
-                    r.y -= 3.0;
-                    r.h += 3;
-
-                    world.effects.push(Effect::new(
-                        "burn".to_string(),
-                        Rect::new(r.x, r.y-5.0,r.w, r.h+5),
-                        Some(0.0)
-                    ));
-
-                    self.key_state.remove(&Keycode::F);
-                    self.button_state.remove(&Button::B);
+                        self.button_state.remove(button);
+                    }
                 }
 
                 // If joystick connected and its values beyond the deadzone use it, otherwise

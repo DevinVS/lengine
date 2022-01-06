@@ -36,10 +36,10 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let mut texture_manager = TextureManager::new(&texture_creator);
 
-    let (mut world, graphics_config) = parse_game_file("./game.yml", &mut texture_manager);
+    let (mut world, input_config, graphics_config) = parse_game_file("./game.yml", &mut texture_manager);
 
     // Create Game Systems
-    let mut input_system = InputSystem::new(controller_subsystem);
+    let mut input_system = InputSystem::new(input_config, controller_subsystem);
     let mut physics_system = PhysicsSystem::new();
     let mut graphics_system = GraphicsSystem::new(graphics_config, texture_manager, &ttf_context, &mut canvas);
     let mut animation_system = AnimationSystem::new();

@@ -1,4 +1,5 @@
 graphics:
+  debug: true
   camera:
     x: 0.0
     y: 0.0
@@ -19,6 +20,13 @@ graphics:
       y: 60
       w: 720
       h: 60
+inputs:
+  - state: "interact"
+    key: "e"
+    button: "a"
+  - state: "burn"
+    key: "f"
+    button: "b"
 dialogs:
   - name: "msg1"
     messages:
