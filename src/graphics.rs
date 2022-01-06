@@ -43,14 +43,10 @@ impl GraphicsComponent {
 /// Camera to view the game world through
 #[derive(Debug)]
 pub struct Camera {
-    /// x coordinate of the camera in the game world
-    pub x: f32,
-    /// y coordinate of the camera in the game world
-    pub y: f32,
-    /// Width of the camera in actual screen pixels
-    pub w: u32,
-    /// Height of the camera in actual screen pixels
-    pub h: u32,
+    /// Rect of the camera in the world
+    pub rect: Rect,
+    /// Box that the player must reside in and the camera will move with the player
+    pub player_box: Rect,
     /// Pixel scaling factor, ie conversion factor between world units and screen pixels
     pub zoom: u32
 }
@@ -58,12 +54,12 @@ pub struct Camera {
 impl Camera {
     /// Find the new rectangle with respect to the view of the camera
     fn view(&self, rect: Rect, (width, height): (u32, u32)) -> Rect {
-        let screen_x = (width - self.w) / 2;
-        let screen_y = (height - self.h) / 2;
+        let screen_x = (width - self.rect.w) / 2;
+        let screen_y = (height - self.rect.h) / 2;
 
         Rect::new(
-            (rect.x-self.x) * self.zoom as f32 + screen_x as f32,
-            (rect.y-self.y) * self.zoom as f32 + screen_y as f32,
+            (rect.x-self.rect.x) * self.zoom as f32 + screen_x as f32,
+            (rect.y-self.rect.y) * self.zoom as f32 + screen_y as f32,
             rect.w * self.zoom,
             rect.h * self.zoom
         )
@@ -72,8 +68,8 @@ impl Camera {
     /// Cover the world outside the camera's view with black bars
     fn render(&self, canvas: &mut Canvas<Window>) {
         let (width, height) = canvas.window().size();
-        let left_offset = (width - self.w) / 2;
-        let top_offset = (height - self.h) / 2;
+        let left_offset = (width - self.rect.w) / 2;
+        let top_offset = (height - self.rect.h) / 2;
         let right_offset = width - left_offset;
         let bottom_offset = height - top_offset;
 
@@ -196,30 +192,36 @@ impl<'a> GraphicsSystem<'a> {
 
     /// Make the Camera follow a given rectangle
     fn follow(&mut self, rect: Rect) {
-        let cam_left = self.camera.x;
-        let cam_right = self.camera.x + self.camera.w as f32 / self.camera.zoom as f32;
-        let cam_top = self.camera.y;
-        let cam_bottom = self.camera.y + self.camera.h as f32 / self.camera.zoom as f32;
+        // Bounding box
+        let box_x_offset = self.camera.player_box.x / self.camera.zoom as f32;
+        let box_y_offset = self.camera.player_box.y / self.camera.zoom as f32;
+        let box_width = self.camera.player_box.w as f32 / self.camera.zoom as f32;
+        let box_height = self.camera.player_box.h as f32 / self.camera.zoom as f32;
+
+        let box_left = self.camera.rect.x + box_x_offset;
+        let box_right = box_left + box_width;
+        let box_top = self.camera.rect.y + box_y_offset;
+        let box_bottom = box_top + box_height;
 
         let rect_left = rect.x;
         let rect_right = rect.x + rect.w as f32;
         let rect_top = rect.y;
         let rect_bottom = rect.y + rect.h as f32;
 
-        if rect_left < cam_left {
-            self.camera.x = rect_left;
+        if rect_left < box_left {
+            self.camera.rect.x = rect_left - box_x_offset;
         }
 
-        if rect_right > cam_right {
-            self.camera.x += rect_right - cam_right;
+        if rect_right > box_right {
+            self.camera.rect.x = rect_right - box_width - box_x_offset;
         }
 
-        if rect_top < cam_top {
-            self.camera.y = rect_top;
+        if rect_top < box_top {
+            self.camera.rect.y = rect_top - box_y_offset;
         }
 
-        if rect_bottom > cam_bottom {
-            self.camera.y += rect_bottom - cam_bottom;
+        if rect_bottom > box_bottom {
+            self.camera.rect.y = rect_bottom - box_height - box_y_offset;
         }
     }
 
@@ -245,6 +247,9 @@ impl<'a> GraphicsSystem<'a> {
 
     /// Draw all renderable entities
     pub fn run(&mut self, world: &mut World) {
+        // Set background color
+        self.canvas.set_draw_color(world.background_color);
+
         self.canvas.clear();
 
         if let Some(player_id) = world.player_id {
@@ -255,7 +260,7 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw background if exists
         if let Some(background) = world.background.as_ref() {
-            let pos = PositionComponent::new(-self.camera.x*self.camera.zoom as f32, -self.camera.y*self.camera.zoom as f32);
+            let pos = PositionComponent::new(-self.camera.rect.x*self.camera.zoom as f32, -self.camera.rect.y*self.camera.zoom as f32);
             let renderbox = background.renderbox.after_position(&pos).sdl2();
             let tex = self.texture_manager.get_texture(background.texture_id).unwrap();
             self.canvas.copy(tex, None, renderbox).unwrap();
@@ -301,8 +306,8 @@ impl<'a> GraphicsSystem<'a> {
     /// Render a dialog window
     fn render_dialog(&mut self, dialog: &Dialog) {
         let (screen_width, screen_height) = self.canvas.window().size();
-        let left_offset = ((screen_width - self.camera.w) / 2) as i32;
-        let top_offset = ((screen_height - self.camera.h) / 2) as i32;
+        let left_offset = ((screen_width - self.camera.rect.w) / 2) as i32;
+        let top_offset = ((screen_height - self.camera.rect.h) / 2) as i32;
 
         // Draw Box
         let d = self.dialog.as_ref().unwrap();

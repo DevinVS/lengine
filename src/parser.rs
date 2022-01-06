@@ -6,10 +6,16 @@
 //! ```yaml
 //! graphics:           # Configuration for GraphicsSystem
 //!   camera:           # World Camera
-//!     x: f32          # x position of camera in world coords (default 0)
-//!     y: f32          # y position of camera in world coords (default 0)
-//!     w: u32          # width of camera viewport in screen pixels (default 800)
-//!     h: u32          # height of camera viewport in screen pixels (default 600)
+//!     rect:           # Rect defining the position of the camera
+//!       x: f32        # x position of camera in world coords (default 0)
+//!       y: f32        # y position of camera in world coords (default 0)
+//!       w: u32        # width of camera viewport in screen pixels (default 800)
+//!       h: u32        # height of camera viewport in screen pixels (default 600)
+//!     player_box:     # Area within the player can move without the camera moving
+//!       x: f32        # x position of player box
+//!       y: f32        # y position of player box
+//!       w: u32        # width of player box in screen pixels
+//!       h: u32        # height of player box in screen pixels
 //!     zoom: u32       # camera zoom, scalar factor of world units to screen pixels (default 5)
 //!   dialog:           # Configuration for rendering a dialog
 //!     path: string    # Path to dialog texture
@@ -40,6 +46,10 @@
 //!       - string      # A single message
 //! background:         # Background of the world
 //!   path: string      # path to the texture
+//!   color:            # Color for the rest of the window
+//!     r: u8           # Red component
+//!     g: u8           # Green component
+//!     b: u8           # Blue component
 //!   renderbox:        # Rectangle to render texture
 //!     x: f32          # x position in the world (default 0)
 //!     y: f32          # y position in the world (default 0)
@@ -95,8 +105,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-use sdl2::controller::Button;
-use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::input::InputConfig;
@@ -478,8 +487,17 @@ fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
     let dialog_renderbox = parse_sdl2_rect(&yaml["dialog"]["renderbox"]);
     let dialog_textbox = parse_sdl2_rect(&yaml["dialog"]["textbox"]);
 
-    let cam_rect = parse_world_rect_with_defaults(&yaml["camera"], (Some(0.0), Some(0.0), Some(800), Some(600))).unwrap();
+    let cam_rect = parse_world_rect_with_defaults(&yaml["camera"]["rect"], (Some(0.0), Some(0.0), Some(800), Some(600))).unwrap();
     let cam_zoom = parse_u32_or(&yaml["camera"]["zoom"], 5);
+
+    let cam_player_box = {
+        let w = parse_u32(&yaml["camera"]["player_box"]["w"]).unwrap();
+        let h = parse_u32(&yaml["camera"]["player_box"]["h"]).unwrap();
+        let x = parse_f32(&yaml["camera"]["player_box"]["x"]).unwrap_or((cam_rect.w-w) as f32/2.0);
+        let y = parse_f32(&yaml["camera"]["player_box"]["y"]).unwrap_or((cam_rect.h-h) as f32/2.0);
+
+        Rect::new(x, y, w, h)
+    };
 
     GraphicsConfig {
         debug,
@@ -489,10 +507,8 @@ fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
         dialog_renderbox,
         dialog_textbox,
         camera: Camera {
-            x: cam_rect.x,
-            y: cam_rect.y,
-            w: cam_rect.w,
-            h: cam_rect.h,
+            rect: cam_rect,
+            player_box: cam_player_box,
             zoom: cam_zoom
         }
     }
@@ -515,7 +531,14 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
 
     // World
     let background = parse_graphics_component(&doc["background"], texture_manager);
-    let mut world = World::new(background);
+
+    let b_red = parse_u32_or(&doc["background"]["color"]["r"], 255);
+    let b_blue = parse_u32_or(&doc["background"]["color"]["g"], 255);
+    let b_green = parse_u32_or(&doc["background"]["color"]["b"], 255);
+
+    let background_color = Color::RGB(b_red as u8, b_blue as u8, b_green as u8);
+
+    let mut world = World::new(background, background_color);
 
     // Parse the System Configs
     let input_config = parse_input_config(&doc["inputs"]);

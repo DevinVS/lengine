@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 
 use itertools::izip;
+use sdl2::pixels::Color;
 
 use crate::geometry::PositionComponent;
 use crate::physics::PhysicsComponent;
@@ -27,7 +28,7 @@ pub struct World {
 
     /// Background texture and renderbox
     pub background: Option<GraphicsComponent>,
-
+    pub background_color: Color,
     // Entity Components
 
     /// Array of sets of all the current active states for an entity
@@ -46,7 +47,7 @@ pub struct World {
 
 impl World {
     /// Create a new world
-    pub fn new(background: Option<GraphicsComponent>) -> World {
+    pub fn new(background: Option<GraphicsComponent>, color: Color) -> World {
         World {
             player_id: None,
             states: Vec::new(),
@@ -58,7 +59,8 @@ impl World {
             effects: Vec::new(),
             dialogs: HashMap::new(),
             curr_dialog: None,
-            background
+            background,
+            background_color: color
         }
     }
 
