@@ -251,8 +251,10 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw background if exists
         if let Some(background) = world.background.as_ref() {
-            let pos = PositionComponent::new(-self.camera.rect.x*self.camera.zoom as f32, -self.camera.rect.y*self.camera.zoom as f32);
-            let renderbox = background.renderbox.after_position(&pos).sdl2();
+            let (width, height) = self.canvas.window().size();
+            let left = (width - self.camera.rect.w) as f32 / 2.0 - self.camera.rect.x * self.camera.zoom as f32;
+            let top = (height - self.camera.rect.h) as f32 / 2.0 - self.camera.rect.y * self.camera.zoom as f32;
+            let renderbox = background.renderbox.after_position(&PositionComponent::new(left, top)).sdl2();
             let tex = self.texture_manager.get_texture(background.texture_id).unwrap();
             self.canvas.copy(tex, None, renderbox).unwrap();
         }
