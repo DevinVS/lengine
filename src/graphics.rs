@@ -234,15 +234,6 @@ impl<'a> GraphicsSystem<'a> {
         let entity_rect = self.camera.view(entity.2.renderbox.after_position(entity.1), self.canvas.window().size());
 
         self.canvas.copy_ex(texture, entity.2.srcbox, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
-
-        // Draw hitbox
-        if self.debug && physics.is_some() {
-            let hitbox = self.camera.view(physics.unwrap().hitbox.after_position(entity.1), self.canvas.window().size());
-
-            self.canvas.set_draw_color((255, 0, 0));
-            self.canvas.draw_rect(hitbox.sdl2()).unwrap();
-            self.canvas.set_draw_color((255, 255, 255));
-        }
     }
 
     /// Draw all renderable entities
@@ -280,6 +271,24 @@ impl<'a> GraphicsSystem<'a> {
             self.draw_entity(e.1, physics.1);
         });
 
+        // Draw hitboxes if we are in debug mode
+        if self.debug {
+            self.canvas.set_draw_color(Color::RED);
+            for i in 0..world.states.len() {
+                if world.physics[i].is_some() && world.positions[i].is_some() {
+                    let rect = self.camera.view(
+                        world.physics[i].as_ref().unwrap().hitbox
+                            .after_position(
+                                world.positions[i].as_ref().unwrap()
+                            ),
+                        self.canvas.window().size()
+                    );
+
+                    self.canvas.draw_rect(rect.sdl2()).unwrap();
+                }
+            }
+        }
+
         // Draw Dialog If Exists
         if self.dialog.is_some() {
             if let Some(dialog) = world.current_dialog() {
@@ -289,13 +298,11 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw effects if we are in debug mode
         if self.debug {
-            let draw_color = self.canvas.draw_color();
             self.canvas.set_draw_color(Color::MAGENTA);
             for effect in world.effects.iter() {
                 let rect = self.camera.view(effect.rect, self.canvas.window().size());
                 self.canvas.draw_rect(rect.sdl2()).unwrap();
             }
-            self.canvas.set_draw_color(draw_color);
         }
 
         // Draw Camera Borders
@@ -325,7 +332,7 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw Text
         let msg = dialog.msg();
-        let surface = d.font.render(&msg).blended_wrapped((46, 53, 42), d.textbox.width()).unwrap();
+        let surface = d.font.render(&msg).blended_wrapped((255, 255, 255), d.textbox.width()).unwrap();
         let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
 
         let TextureQuery { width, height, .. } = tex.query();

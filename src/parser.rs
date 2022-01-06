@@ -380,7 +380,9 @@ fn parse_position_component(yaml: &Yaml) -> Option<PositionComponent> {
 fn parse_physics_component(yaml: &Yaml) -> Option<PhysicsComponent> {
     let hitbox = parse_world_rect_with_defaults(&yaml["hitbox"], (Some(0.0), Some(0.0), None, None));
     let physical = parse_bool_or(&yaml["physical"], true);
-    let depth = parse_u32(&yaml["depth"]).map(|d| Some(d)).unwrap_or(hitbox.map(|h| h.y as u32));
+    let depth = parse_u32(&yaml["depth"]).map(|d| Some(d)).unwrap_or(hitbox.map(|h| h.h as u32));
+
+    println!("{:?}", depth);
 
     if hitbox.is_none() {
         None

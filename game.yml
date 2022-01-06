@@ -1,5 +1,4 @@
 graphics:
-  debug: true
   camera:
     rect:
       x: 0.0
@@ -12,8 +11,8 @@ graphics:
     zoom: 5
   dialog:
     path: "./assets/dialog.png"
-    font: "./assets/PressStart2P-vaV7.ttf"
-    fontsize: 14
+    font: "./assets/GnuUnifontFull-Pm9P.ttf"
+    fontsize: 24
     renderbox:
       x: 0
       y: 400
@@ -22,8 +21,17 @@ graphics:
     textbox:
       x: 60
       y: 60
-      w: 720
+      w: 680
       h: 60
+dialogs:
+  - name: "locked_door"
+    messages:
+      - "The door is locked, you must have left a key around here somewhere..."
+  - name: "painting"
+    messages:
+      - "A painting of a sunset. It reminds you of somewhere."
+      - "You take a deep breath. \"You can do this\", you mutter under your breath."
+      - "But also maybe not."
 inputs:
   - state: "interact"
     key: "e"
@@ -75,3 +83,64 @@ entities:
           h: 17
         frame_width: 18
         frame_count: 12
+  # Door
+  - position:
+      x: 30
+      y: 5
+    physics:
+      hitbox:
+        w: 12
+        h: 25
+    events:
+      - states:
+        - "interact"
+        actions:
+          - type: "dialog"
+            dialog: "locked_door"
+          - type: "remove_state"
+            state: "interact"
+  # Painting
+  - position:
+      x: 93
+      y: 10
+    physics:
+      hitbox:
+        w: 21
+        h: 20
+    events:
+      - states:
+        - "interact"
+        actions:
+          - type: "dialog"
+            dialog: "painting"
+          - type: "remove_state"
+            state: "interact"
+  # Walls
+  - position:
+      x: 0
+      y: 0
+    physics:
+      hitbox:
+        w: 10
+        h: 160
+  - position:
+      x: 0
+      y: 0
+    physics:
+      hitbox:
+        w: 160
+        h: 30
+  - position:
+      x: 150
+      y: 0
+    physics:
+      hitbox:
+        w: 10
+        h: 160
+  - position:
+      x: 0
+      y: 150
+    physics:
+      hitbox:
+        w: 160
+        h: 10
