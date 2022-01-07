@@ -3,8 +3,8 @@ graphics:
     rect:
       x: 0.0
       y: 0.0
-      w: 800
-      h: 600
+      w: 1000
+      h: 800
     player_box:
       w: 400
       h: 300
@@ -15,8 +15,8 @@ graphics:
     fontsize: 24
     renderbox:
       x: 0
-      y: 400
-      w: 800
+      y: 600
+      w: 1000
       h: 200
     textbox:
       x: 60
@@ -30,15 +30,18 @@ dialogs:
   - name: "painting"
     messages:
       - "A painting of a sunset. It reminds you of somewhere."
-      - "You take a deep breath. \"You can do this\", you mutter under your breath."
-      - "But also maybe not."
+  - name: "obtain_key"
+    messages:
+      - "You picked up a key."
+  - name: "unlocked_door"
+    messages:
+      - "The door unlocks with a satisfying click and you finish the game demo..."
 inputs:
-  - state: "interact"
+  - add:
+    - "interact"
+    ttl: 0
     key: "e"
     button: "a"
-  - state: "burn"
-    key: "f"
-    button: "b"
 background:
   color:
     r: 48
@@ -84,7 +87,8 @@ entities:
         frame_width: 18
         frame_count: 12
   # Door
-  - position:
+  - state: "locked"
+    position:
       x: 30
       y: 5
     physics:
@@ -94,9 +98,18 @@ entities:
     events:
       - states:
         - "interact"
+        - "locked"
         actions:
           - type: "dialog"
             dialog: "locked_door"
+          - type: "remove_state"
+            state: "interact"
+      - states:
+        - "interact"
+        - "unlocked"
+        actions:
+          - type: "dialog"
+            dialog: "unlocked_door"
           - type: "remove_state"
             state: "interact"
   # Painting
@@ -115,6 +128,46 @@ entities:
             dialog: "painting"
           - type: "remove_state"
             state: "interact"
+  # Key
+  - state: "on_floor"
+    position:
+      x: 60
+      y: 60
+    physics:
+      physical: false
+      hitbox:
+        w: 8
+        h: 4
+    graphics:
+      path: "./assets/key.png"
+      renderbox:
+        w: 8
+        h: 4
+    events:
+      - states:
+        - "interact"
+        - "on_floor"
+        actions:
+          - type: "dialog"
+            dialog: "obtain_key"
+          - type: "add_state"
+            state: "invisible"
+          - type: "remove_state"
+            state: "on_floor"
+          - type: "remove_state"
+            state: "interact"
+          - type: "add_effect"
+            effect:
+              add:
+                - "unlocked"
+              remove:
+                - "locked"
+              ttl: 0
+              rect:
+                x: 30
+                y: 5
+                w: 5
+                h: 5
   # Walls
   - position:
       x: 0

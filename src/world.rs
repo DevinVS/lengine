@@ -102,10 +102,21 @@ impl World {
 
                 for j in 0..self.effects.len() {
                     let effect_rect = self.effects[j].rect;
-                    let effect_name = self.effects[j].name.clone();
+                    let add = &self.effects[j].adds;
+                    let remove = &self.effects[j].removes;
 
                     if footprint.has_intersection(effect_rect) {
-                        self.states[i].insert(effect_name);
+                        for state in add {
+                            println!("add {}", state);
+                            self.states[i].insert(state.clone());
+                        }
+
+                        for state in remove {
+                            println!("remove {}", state);
+                            self.states[i].remove(state);
+                        }
+
+                        println!("{:?}", self.states[i]);
                     }
                 }
             }

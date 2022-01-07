@@ -2,12 +2,37 @@ use std::time::Instant;
 use crate::{geometry::Rect, world::World};
 
 #[derive(Debug, Clone)]
+pub struct EffectSpawner {
+    adds: Vec<String>,
+    removes: Vec<String>,
+    ttl: Option<f32>,
+    rect: Rect
+}
+
+impl EffectSpawner {
+    pub fn new(adds: Vec<String>, removes: Vec<String>, rect: Rect, ttl: Option<f32>) -> EffectSpawner {
+        EffectSpawner {
+            adds,
+            removes,
+            ttl,
+            rect
+        }
+    }
+
+    pub fn spawn(&self) -> Effect {
+        Effect::new(self.adds.clone(), self.removes.clone(), self.rect, self.ttl)
+    }
+}
+
+#[derive(Debug, Clone)]
 /// An area effect inside the world
 /// Any entity inside this effect will gain
 /// the state which is the effect's name
 pub struct Effect {
-    /// Name of the effect and the state it gives
-    pub name: String,
+    /// Name of the states this effect adds
+    pub adds: Vec<String>,
+    /// Name of the states this effect removes
+    pub removes: Vec<String>,
     /// Time effect was created
     created: Instant,
     /// Time that the effect lasts, in seconds
@@ -18,9 +43,10 @@ pub struct Effect {
 
 impl Effect {
     /// Create a new Effect
-    pub fn new(name: String, rect: Rect, ttl: Option<f32>) -> Effect {
+    pub fn new(adds: Vec<String>, removes: Vec<String>, rect: Rect, ttl: Option<f32>) -> Effect {
         Effect {
-            name,
+            adds,
+            removes,
             ttl,
             rect,
             created: Instant::now()

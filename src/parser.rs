@@ -32,7 +32,10 @@
 //!       w: u32        # width in screen coordinates
 //!       h: u32        # height in screen coordinates
 //! inputs:             # List of player inputs and the effects they cause
-//!   - state: string   # State caused by input
+//!   - add:            # List of states added by input
+//!     - string        # Individual state added
+//!     remove:         # List of states removed by input
+//!     - string        # Individual state removed
 //!     key: string     # key name that causes effect
 //!     button: string  # button name that causes effect
 //!     rect:           # Rectangle for the effect
@@ -108,6 +111,7 @@ use std::io::Read;
 use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
 
+use crate::effect::EffectSpawner;
 use crate::input::InputConfig;
 use crate::world::World;
 use crate::geometry::{Rect, PositionComponent};
@@ -115,7 +119,7 @@ use crate::physics::PhysicsComponent;
 use crate::graphics::{GraphicsComponent, GraphicsConfig, TextureManager, Camera};
 use crate::animation::{AnimationComponent, Animation};
 use crate::state::{ActionComponent, Sequence};
-use crate::actions::{Action, AddState, RemoveState, ShowDialog};
+use crate::actions::{Action, AddState, RemoveState, ShowDialog, AddEffect};
 use crate::dialog::Dialog;
 
 
@@ -279,6 +283,10 @@ fn parse_action(yaml: &Yaml) -> Option<Box<dyn Action>> {
             parse_string(&yaml["state"])
                 .map(|s| Box::new(RemoveState { state: s.to_string() }) as Box<dyn Action>)
         }
+        Some("add_effect") => {
+            let e = parse_effect(&yaml["effect"]);
+            Some(Box::new(AddEffect { effect: e }) as Box<dyn Action>)
+        }
         _ => None
     }
 }
@@ -382,8 +390,6 @@ fn parse_physics_component(yaml: &Yaml) -> Option<PhysicsComponent> {
     let physical = parse_bool_or(&yaml["physical"], true);
     let depth = parse_u32(&yaml["depth"]).map(|d| Some(d)).unwrap_or(hitbox.map(|h| h.h as u32));
 
-    println!("{:?}", depth);
-
     if hitbox.is_none() {
         None
     } else {
@@ -442,19 +448,31 @@ fn parse_actions_component(yaml: &Yaml) -> Option<ActionComponent> {
     }
 }
 
+/// Parse yaml into effect
+fn parse_effect(yaml: &Yaml) -> EffectSpawner {
+    let added: Vec<String> = yaml["add"].as_vec().unwrap_or(&Vec::new()).iter()
+        .filter_map(|y| parse_string(y))
+        .collect();
+
+    let removed: Vec<String> = yaml["remove"].as_vec().unwrap_or(&Vec::new()).iter()
+        .filter_map(|y| parse_string(y))
+        .collect();
+
+    let ttl = parse_f32(&yaml["ttl"]);
+    let rect = parse_world_rect_or(&yaml["rect"], (-2.0, -2.0, 4, 4));
+
+    EffectSpawner::new(added, removed, rect, ttl)
+}
+
 /// Parse yaml into input
-fn parse_input(yaml: &Yaml) -> Option<(Option<String>, Option<String>, String, Rect)> {
-    let state = parse_string(&yaml["state"]);
+fn parse_input(yaml: &Yaml) -> Option<(Option<String>, Option<String>, EffectSpawner)> {
+    let effect = parse_effect(yaml);
+
     let key = parse_string(&yaml["key"]);
     let button = parse_string(&yaml["button"]);
 
-    let rect = parse_world_rect_or(&yaml["rect"], (-2.0, -2.0, 4, 4));
 
-    if state.is_none() {
-        None
-    } else {
-        Some((key, button, state.unwrap(), rect))
-    }
+    Some((key, button, effect))
 }
 
 /// Parse yaml into input config
@@ -466,13 +484,13 @@ fn parse_input_config(yaml: &Yaml) -> InputConfig {
         .filter_map(|y| {
             parse_input(y)
         })
-        .for_each(|(key, button, state, rect)| {
+        .for_each(|(key, button, effect)| {
             if key.is_some() {
-                config.add_keymap(&key.unwrap(), state.clone(), rect);
+                config.add_keymap(&key.unwrap(), effect.clone());
             }
 
             if button.is_some() {
-                config.add_buttonmap(&button.unwrap(), state.clone(), rect);
+                config.add_buttonmap(&button.unwrap(), effect.clone());
             }
         });
 

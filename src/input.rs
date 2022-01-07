@@ -10,14 +10,14 @@ use sdl2::controller::Axis;
 
 use crate::vector::Vector;
 use crate::world::World;
-use crate::effect::Effect;
+use crate::effect::{Effect, EffectSpawner};
 use crate::geometry::Rect;
 
 /// user defined key and button mappings to states
 #[derive(Debug)]
 pub struct InputConfig {
-    keymap: HashMap<Keycode, (String, Rect)>,
-    buttonmap: HashMap<Button, (String, Rect)>
+    keymap: HashMap<Keycode, EffectSpawner>,
+    buttonmap: HashMap<Button, EffectSpawner>
 }
 
 impl InputConfig {
@@ -30,20 +30,20 @@ impl InputConfig {
     }
 
     /// Add a key mapping from its name
-    pub fn add_keymap(&mut self, key: &str, state: String, rect: Rect) {
+    pub fn add_keymap(&mut self, key: &str, es: EffectSpawner) {
         let key = Keycode::from_name(key);
 
         if let Some(key) = key {
-            self.keymap.insert(key, (state, rect));
+            self.keymap.insert(key, es);
         }
     }
 
     /// Add button mapping from its name
-    pub fn add_buttonmap(&mut self, button: &str, state: String, rect: Rect) {
+    pub fn add_buttonmap(&mut self, button: &str, es: EffectSpawner) {
         let button = Button::from_string(button);
 
         if let Some(button) = button {
-            self.buttonmap.insert(button, (state, rect));
+            self.buttonmap.insert(button, es);
         }
     }
 }
@@ -135,32 +135,28 @@ impl InputSystem {
 
                 for key in self.config.keymap.keys() {
                     if self.key_state.contains(key) {
-                        let state = self.config.keymap[key].0.clone();
-                        let rect = self.config.keymap[key].1;
-                        world.effects.push(
-                            Effect::new(
-                                state.clone(),
-                                Rect::new(player_rect.x+rect.x, player_rect.y+rect.y, player_rect.w+rect.w, player_rect.h+rect.h),
-                                Some(0.0)
-                            )
-                        );
+                        let mut effect = self.config.keymap[key].spawn();
 
+                        effect.rect.x += player_rect.x;
+                        effect.rect.y += player_rect.y;
+                        effect.rect.w += player_rect.w;
+                        effect.rect.h += player_rect.h;
+
+                        world.effects.push(effect);
                         self.key_state.remove(key);
                     }
                 }
 
                 for button in self.config.buttonmap.keys() {
                     if self.button_state.contains(button) {
-                        let state = self.config.buttonmap[button].0.clone();
-                        let rect = self.config.buttonmap[button].1;
-                        world.effects.push(
-                            Effect::new(
-                                state.clone(),
-                                Rect::new(player_rect.x+rect.x, player_rect.y+rect.y, player_rect.w+rect.w, player_rect.h+rect.h),
-                                Some(0.0)
-                            )
-                        );
+                        let mut effect = self.config.buttonmap[button].spawn();
 
+                        effect.rect.x += player_rect.x;
+                        effect.rect.y += player_rect.y;
+                        effect.rect.w += player_rect.w;
+                        effect.rect.h += player_rect.h;
+
+                        world.effects.push(effect);
                         self.button_state.remove(button);
                     }
                 }

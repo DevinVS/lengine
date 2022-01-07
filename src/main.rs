@@ -23,7 +23,7 @@ fn main() {
     let controller_subsystem = sdl2_context.game_controller().unwrap();
 
     // Create graphics objects such as window, canvas, and texture manager
-    let window = video_subsystem.window("title", 800, 600)
+    let window = video_subsystem.window("title", 1000, 800)
         .maximized()
         .build()
         .unwrap();
@@ -67,7 +67,6 @@ fn main() {
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
         effects_system.run(&mut world);
-
 
         // Sleep
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

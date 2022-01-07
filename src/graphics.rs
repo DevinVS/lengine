@@ -269,8 +269,10 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw Entities
         drawables.iter().for_each(|e| {
-            let physics = world.get_entity_physics(e.0);
-            self.draw_entity(e.1, physics.1);
+            if !e.1.0.contains(&"invisible".to_string()) {
+                let physics = world.get_entity_physics(e.0);
+                self.draw_entity(e.1, physics.1);
+            }
         });
 
         // Draw hitboxes if we are in debug mode

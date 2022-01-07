@@ -1,5 +1,5 @@
 use std::{collections::HashSet, fmt::Debug};
-use crate::effect::Effect;
+use crate::effect::{Effect, EffectSpawner};
 
 /// Trait to define an action caused by a change in state or world event
 ///
@@ -49,12 +49,12 @@ impl Action for RemoveState {}
 #[derive(Debug)]
 pub struct AddEffect {
     /// Effect to add
-    pub effect: Effect
+    pub effect: EffectSpawner
 }
 
 impl Actionable for AddEffect {
     fn tick(&mut self, _: &mut HashSet<String>, effects: &mut Vec<Effect>, _: &mut Option<String>) {
-        effects.push(self.effect.clone())
+        effects.push(self.effect.spawn())
     }
 }
 
