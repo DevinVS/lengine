@@ -109,10 +109,13 @@ impl InputSystem {
         // Act based up on current key state
 
         // If a dialog exists, process no future input and instead wait for the e key
-        if let Some(dialog) = world.current_dialog() {
+        if world.curr_dialog.is_some() {
+            let dialog = world.dialogs.get_mut(world.curr_dialog.as_ref().unwrap()).unwrap();
+
             if self.key_state.contains(&Keycode::E) || self.button_state.contains(&Button::A) {
                 if dialog.finished() {
                     dialog.next();
+                    dialog.run_after(&mut world.effects, &mut world.curr_dialog);
                     world.curr_dialog = None;
                 } else {
                     dialog.next();

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Debug};
+use std::{collections::HashSet, fmt::Debug, process::exit};
 use crate::effect::{Effect, EffectSpawner};
 
 /// Trait to define an action caused by a change in state or world event
@@ -74,3 +74,14 @@ impl Actionable for ShowDialog {
 }
 
 impl Action for ShowDialog {}
+
+#[derive(Debug)]
+pub struct ExitGame;
+
+impl Actionable for ExitGame {
+    fn tick(&mut self, _: &mut HashSet<String>, _: &mut Vec<Effect>, _: &mut Option<String>) {
+        exit(0);
+    }
+}
+
+impl Action for ExitGame {}

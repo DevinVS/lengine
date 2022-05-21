@@ -36,12 +36,29 @@ dialogs:
   - name: "unlocked_door"
     messages:
       - "The door unlocks with a satisfying click and you finish the game demo..."
+    after:
+      - type: "exit_game"
+  - name: "humble_sign"
+    messages:
+      - "I am but a humble sign, here to guide you on you journey."
+      - "Press 'e' to interact with objects around the room, but if you see this you probably already know this"
+      - "You can also press 'f'."
+      - "Please don't."
+  - name: "burnt_sign"
+    messages:
+      - "It's just a pile of ash."
+      - "You Monster"
 inputs:
   - add:
     - "interact"
     ttl: 0
     key: "e"
     button: "a"
+  - add:
+    - "burning"
+    ttl: 0
+    key: "f"
+    button: "b"
 background:
   color:
     r: 48
@@ -197,3 +214,53 @@ entities:
       hitbox:
         w: 160
         h: 10
+  - state: "normal"
+    position:
+      x: 40
+      y: 90
+    graphics:
+      path: "./assets/sign.png"
+      renderbox:
+        w: 16
+        h: 16
+    physics:
+      hitbox:
+        x: 7
+        y: 14
+        w: 2
+        h: 2
+    animations:
+      - state: "burning"
+        path: "./assets/sign_darken.png"
+        period: 0.1
+        srcbox:
+          x: 0
+          y: 0
+          w: 16
+          h: 16
+        frame_width: 16
+        frame_count: 7
+        after:
+          - type: "remove_state"
+            state: "burning"
+          - type: "add_state"
+            state: "burnt"
+          - type: "remove_state"
+            state: "normal"
+    events:
+      - states:
+        - "interact"
+        - "normal"
+        actions:
+          - type: "dialog"
+            dialog: "humble_sign"
+          - type: "remove_state"
+            state: "interact"
+      - states:
+        - "interact"
+        - "burnt"
+        actions:
+          - type: "dialog"
+            dialog: "burnt_sign"
+          - type: "remove_state"
+            state: "interact"

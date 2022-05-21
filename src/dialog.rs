@@ -1,3 +1,8 @@
+use std::collections::HashSet;
+use crate::effect::Effect;
+
+use crate::state::Sequence;
+
 /// Represents a Dialog interaction with the player
 #[derive(Debug)]
 pub struct Dialog {
@@ -5,14 +10,19 @@ pub struct Dialog {
     messages: Vec<String>,
     /// Index of the current message to display
     curr_msg: usize,
+    /// Actions to run after
+    /// Note: state changes are nonsensical and have no effect when run after a dialog
+    /// Use an effect instead
+    after: Option<Sequence>
 }
 
 impl Dialog {
     /// Create a new Dialog
-    pub fn new(messages: Vec<String>) -> Dialog {
+    pub fn new(messages: Vec<String>, after: Option<Sequence>) -> Dialog {
         Dialog {
             messages,
             curr_msg: 0,
+            after
         }
     }
 
@@ -31,5 +41,11 @@ impl Dialog {
     /// Get current message
     pub fn msg(&self) -> String {
         self.messages[self.curr_msg].clone()
+    }
+
+    pub fn run_after(&mut self, effects: &mut Vec<Effect>, curr_dialog: &mut Option<String>) {
+        if let Some(sequence) = &mut self.after {
+            sequence.run_all(&mut HashSet::new(), effects, curr_dialog);
+        }
     }
 }

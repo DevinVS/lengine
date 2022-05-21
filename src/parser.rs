@@ -47,6 +47,8 @@
 //!   - name: string    # Name of the dialog
 //!     messages:       # List of messages to be displayed sequentially
 //!       - string      # A single message
+//!     after:          # Actions to run afterwards
+//!       - action      # See actions section
 //! background:         # Background of the world
 //!   path: string      # path to the texture
 //!   color:            # Color for the rest of the window
@@ -119,7 +121,7 @@ use crate::physics::PhysicsComponent;
 use crate::graphics::{GraphicsComponent, GraphicsConfig, TextureManager, Camera};
 use crate::animation::{AnimationComponent, Animation};
 use crate::state::{ActionComponent, Sequence};
-use crate::actions::{Action, AddState, RemoveState, ShowDialog, AddEffect};
+use crate::actions::{Action, AddState, RemoveState, ShowDialog, AddEffect, ExitGame};
 use crate::dialog::Dialog;
 
 
@@ -287,6 +289,9 @@ fn parse_action(yaml: &Yaml) -> Option<Box<dyn Action>> {
             let e = parse_effect(&yaml["effect"]);
             Some(Box::new(AddEffect { effect: e }) as Box<dyn Action>)
         }
+        Some("exit_game") => {
+            Some(Box::new(ExitGame {}) as Box<dyn Action>)
+        }
         _ => None
     }
 }
@@ -299,10 +304,12 @@ fn parse_dialog(yaml: &Yaml) -> Option<(String, Dialog)> {
         .map(|e| parse_string(e).unwrap())
         .collect();
 
+    let after = parse_sequence(&yaml["after"]);
+
     if name.is_none() {
         None
     } else {
-        Some((name.unwrap(), Dialog::new(messages)))
+        Some((name.unwrap(), Dialog::new(messages, after)))
     }
 }
 
