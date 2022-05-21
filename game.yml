@@ -61,9 +61,9 @@ inputs:
     button: "b"
 background:
   color:
-    r: 48
-    g: 72
-    b: 49
+    r: 0
+    g: 0
+    b: 0
   path: "./assets/room.png"
   renderbox:
     w: 800
