@@ -6,7 +6,7 @@ use game::effect::EffectSystem;
 use game::input::InputSystem;
 use game::physics::PhysicsSystem;
 use game::state::StateSystem;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::image::InitFlag;
 use sdl2::keyboard::Keycode;
 
@@ -24,7 +24,7 @@ fn main() {
 
     // Create graphics objects such as window, canvas, and texture manager
     let window = video_subsystem.window("title", 1000, 800)
-        .maximized()
+        .resizable()
         .build()
         .unwrap();
 
@@ -55,6 +55,9 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     exit(0);
                 },
+                Event::Window { win_event: WindowEvent::Resized(_, _), .. } => {
+                    graphics_system.refresh();
+                }
                 _ => {input_system.handle_event(event)}
             }
         }
@@ -71,10 +74,12 @@ fn main() {
         let player_states = world.states[0].clone();
         for state in player_states {
             if state.starts_with("__MOVE_TO__=") {
-                let state = state.replace("__MOVE_TO__=", "");
-                let (file, entrance) = state.split_once("/").unwrap();
+                let s = state.replace("__MOVE_TO__=", "");
+                let (file, entrance) = s.split_once("/").unwrap();
                 world.deload();
                 world.load(file, entrance);
+
+                world.states[0].remove(&state);
                 break;
             }
         }

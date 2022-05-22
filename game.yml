@@ -4,8 +4,8 @@ graphics:
     rect:
       x: 0.0
       y: 0.0
-      w: 1000
-      h: 800
+      w: 800
+      h: 600
     player_box:
       w: 400
       h: 300
@@ -33,6 +33,7 @@ inputs:
 entry: "living_room/door"
 worlds:
   - living_room: "./worlds/living_room.yml"
+  - lake: "./worlds/lake.yml"
 player:
   physics:
     hitbox:

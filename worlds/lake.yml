@@ -1,0 +1,19 @@
+dialogs:
+  - name: "locked_door"
+    messages:
+      - "The door is locked, you must have left a key around here somewhere..."
+background:
+  color:
+    r: 0
+    g: 0
+    b: 255
+  path: "./assets/lake.png"
+  renderbox:
+    w: 7520
+    h: 4320
+entrances:
+  - name: "house"
+    x: 100
+    y: 100
+exits:
+entities:

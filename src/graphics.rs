@@ -53,6 +53,7 @@ pub struct Camera {
 impl Camera {
     /// Find the new rectangle with respect to the view of the camera
     fn view(&self, rect: Rect, (width, height): (u32, u32)) -> Rect {
+        println!("({width}, {height})");
         let screen_x = (width - self.rect.w) / 2;
         let screen_y = (height - self.rect.h) / 2;
 
@@ -66,7 +67,7 @@ impl Camera {
 
     /// Cover the world outside the camera's view with black bars
     fn render(&self, canvas: &mut Canvas<Window>) {
-        let (width, height) = canvas.window().size();
+        let (width, height) = canvas.output_size().unwrap();
         let left_offset = (width - self.rect.w) / 2;
         let top_offset = (height - self.rect.h) / 2;
         let right_offset = width - left_offset;
@@ -194,6 +195,10 @@ impl<'a> GraphicsSystem<'a> {
         }
     }
 
+    /// Fit the sdl window to the newly resized window
+    pub fn refresh(&mut self) {
+    }
+
     /// Make the Camera follow a given rectangle
     fn follow(&mut self, rect: Rect) {
         // Bounding box
@@ -235,13 +240,17 @@ impl<'a> GraphicsSystem<'a> {
         let flipped = entity.2.flipped;
         let texture = texture_manager.get_texture(tex_id).unwrap();
 
-        let entity_rect = self.camera.view(entity.2.renderbox.after_position(entity.1), self.canvas.window().size());
+        let entity_rect = self.camera.view(entity.2.renderbox.after_position(entity.1), self.canvas.output_size().unwrap());
 
         self.canvas.copy_ex(texture, entity.2.srcbox, entity_rect.sdl2(), 0.0, None, flipped, false).unwrap();
     }
 
     /// Draw all renderable entities
     pub fn run(&mut self, world: &mut World) {
+        if let (0, 0) = self.canvas.output_size().unwrap() {
+            return;
+        }
+
         // Set background color
         self.canvas.set_draw_color(world.background_color);
 
@@ -254,8 +263,9 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw background if exists
         if let Some(background) = world.background.as_ref() {
-            let (width, height) = self.canvas.window().size();
-            let left = (width - self.camera.rect.w) as f32 / 2.0 - self.camera.rect.x * self.camera.zoom as f32;
+            let (width, height) = self.canvas.output_size().unwrap();
+            println!("({width}, {height})");
+            let left = (width as f32 - self.camera.rect.w as f32) / 2.0 - self.camera.rect.x * self.camera.zoom as f32;
             let top = (height - self.camera.rect.h) as f32 / 2.0 - self.camera.rect.y * self.camera.zoom as f32;
             let renderbox = background.renderbox.after_position(&PositionComponent::new(left, top)).sdl2();
             let tex = world.texture_manager.get_texture(background.texture_id).unwrap();
@@ -288,7 +298,7 @@ impl<'a> GraphicsSystem<'a> {
                             .after_position(
                                 world.positions[i].as_ref().unwrap()
                             ),
-                        self.canvas.window().size()
+                        self.canvas.output_size().unwrap()
                     );
 
                     self.canvas.draw_rect(rect.sdl2()).unwrap();
@@ -309,7 +319,7 @@ impl<'a> GraphicsSystem<'a> {
         if self.debug {
             self.canvas.set_draw_color(Color::MAGENTA);
             for effect in world.effects.iter() {
-                let rect = self.camera.view(effect.rect, self.canvas.window().size());
+                let rect = self.camera.view(effect.rect, self.canvas.output_size().unwrap());
                 self.canvas.draw_rect(rect.sdl2()).unwrap();
             }
         }
@@ -321,7 +331,7 @@ impl<'a> GraphicsSystem<'a> {
 
     /// Render a dialog window
     fn render_dialog(&mut self, texture_manager: &TextureManager, dialog: &Dialog) {
-        let (screen_width, screen_height) = self.canvas.window().size();
+        let (screen_width, screen_height) = self.canvas.output_size().unwrap();
         let left_offset = ((screen_width - self.camera.rect.w) / 2) as i32;
         let top_offset = ((screen_height - self.camera.rect.h) / 2) as i32;
 

@@ -100,6 +100,7 @@ impl<'a> World<'a> {
         }
 
         self.dialogs.clear();
+        self.effects.clear();
     }
 
     /// Load a world from a world file
