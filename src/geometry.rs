@@ -75,7 +75,7 @@ impl std::ops::Add<Rect> for Rect {
 }
 
 /// Component for a position in the game world
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PositionComponent {
     x: f32,
     y: f32

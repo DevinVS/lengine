@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::render::TextureQuery;
@@ -16,7 +15,7 @@ use crate::world::World;
 use crate::geometry::Rect;
 
 /// Component for rendering a single entity
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GraphicsComponent {
     /// Index of the texture to render
     pub texture_id: usize,
@@ -90,7 +89,8 @@ pub struct TextureManager<'a> {
     /// Hashmap of texture indices to actual textures
     textures: HashMap<usize, Texture<'a>>,
     /// Sdl texture creation struct
-    texture_creator: &'a TextureCreator<WindowContext>
+    texture_creator: &'a TextureCreator<WindowContext>,
+    texture_paths: HashMap<String, usize>
 }
 
 impl<'a> TextureManager<'a> {
@@ -99,23 +99,30 @@ impl<'a> TextureManager<'a> {
         TextureManager {
             next_texture_id: 0,
             textures: HashMap::new(),
-            texture_creator
+            texture_creator,
+            texture_paths: HashMap::new()
         }
     }
 
     /// Read a texture from disk into memory and returns its index to reference later
     pub fn load_texture(&mut self, path: &str) -> usize {
+        if let Some(id) = self.texture_paths.get(path) {
+            return *id;
+        }
+
         let id = self.next_texture_id;
         self.next_texture_id += 1;
 
         let tex = self.texture_creator.load_texture(path).unwrap();
         self.textures.insert(id, tex);
+        self.texture_paths.insert(path.to_string(), id);
+        println!("Load Texture: {path}");
 
         id
     }
 
     /// Get a texture from its index
-    pub fn get_texture(&mut self, id: usize) -> Option<&Texture<'a>> {
+    pub fn get_texture(&self, id: usize) -> Option<&Texture<'a>> {
         self.textures.get(&id)
     }
 }
@@ -126,7 +133,7 @@ impl<'a> TextureManager<'a> {
 pub struct GraphicsConfig {
     pub camera: Camera,
     pub debug: bool,
-    pub dialog_tex_path: Option<String>,
+    pub dialog_tex_id: Option<usize>,
     pub dialog_font_path: Option<String>,
     pub dialog_font_size: Option<u16>,
     pub dialog_textbox: Option<sdl2::rect::Rect>,
@@ -143,11 +150,11 @@ pub struct DialogConfig<'a> {
 
 impl<'a> DialogConfig<'a> {
     /// Create a DialogConfig from a GraphicsConfig struct
-    fn from_graphics_config(gc: &GraphicsConfig, texture_manager: &mut TextureManager, ttf_context: &'a Sdl2TtfContext) -> Option<DialogConfig<'a>> {
-        if gc.dialog_tex_path.is_none() || gc.dialog_font_path.is_none() || gc.dialog_font_size.is_none() || gc.dialog_renderbox.is_none() || gc.dialog_textbox.is_none() {
+    fn from_graphics_config(gc: &GraphicsConfig, ttf_context: &'a Sdl2TtfContext) -> Option<DialogConfig<'a>> {
+        if gc.dialog_tex_id.is_none() || gc.dialog_font_path.is_none() || gc.dialog_font_size.is_none() || gc.dialog_renderbox.is_none() || gc.dialog_textbox.is_none() {
             None
         } else {
-            let tex_id = texture_manager.load_texture(gc.dialog_tex_path.as_ref().unwrap());
+            let tex_id = gc.dialog_tex_id.unwrap();
             let font = ttf_context.load_font(gc.dialog_font_path.as_ref().unwrap(), gc.dialog_font_size.unwrap()).unwrap();
 
             Some(DialogConfig {
@@ -163,8 +170,6 @@ impl<'a> DialogConfig<'a> {
 
 /// The actual rendering system, uses GraphicsState
 pub struct GraphicsSystem<'a> {
-    /// Collection and management of textures
-    pub texture_manager: TextureManager<'a>,
     /// Rendering surface, does all drawing
     canvas: &'a mut Canvas<Window>,
     /// Camera to view the world through
@@ -178,11 +183,10 @@ pub struct GraphicsSystem<'a> {
 
 impl<'a> GraphicsSystem<'a> {
     /// Create a new GraphicsSystem from a GraphicsConfig
-    pub fn new(config: GraphicsConfig, mut texture_manager: TextureManager<'a>, ttf_context: &'a Sdl2TtfContext, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
-        let dialog_config = DialogConfig::from_graphics_config(&config, &mut texture_manager, ttf_context);
+    pub fn new(config: GraphicsConfig, ttf_context: &'a Sdl2TtfContext, canvas: &'a mut Canvas<Window>) -> GraphicsSystem<'a> {
+        let dialog_config = DialogConfig::from_graphics_config(&config, ttf_context);
 
         GraphicsSystem {
-            texture_manager,
             canvas,
             camera: config.camera,
             debug: config.debug,
@@ -226,10 +230,10 @@ impl<'a> GraphicsSystem<'a> {
     }
 
     /// Draw an entity based on its position and texture
-    pub fn draw_entity(&mut self, entity: (&HashSet<String>, &PositionComponent, &GraphicsComponent), physics: Option<&PhysicsComponent>) {
+    pub fn draw_entity(&mut self, texture_manager: &TextureManager, entity: (&HashSet<String>, &PositionComponent, &GraphicsComponent), _physics: Option<&PhysicsComponent>) {
         let tex_id = entity.2.texture_id;
         let flipped = entity.2.flipped;
-        let texture = self.texture_manager.get_texture(tex_id).unwrap();
+        let texture = texture_manager.get_texture(tex_id).unwrap();
 
         let entity_rect = self.camera.view(entity.2.renderbox.after_position(entity.1), self.canvas.window().size());
 
@@ -243,10 +247,9 @@ impl<'a> GraphicsSystem<'a> {
 
         self.canvas.clear();
 
-        if let Some(player_id) = world.player_id {
-            if let (Some(pos), Some(phys)) = world.get_entity_physics(player_id) {
-                self.follow(phys.hitbox.after_position(pos));
-            }
+        let player_id = 0;
+        if let (Some(pos), Some(phys)) = world.get_entity_physics(player_id) {
+            self.follow(phys.hitbox.after_position(pos));
         }
 
         // Draw background if exists
@@ -255,7 +258,7 @@ impl<'a> GraphicsSystem<'a> {
             let left = (width - self.camera.rect.w) as f32 / 2.0 - self.camera.rect.x * self.camera.zoom as f32;
             let top = (height - self.camera.rect.h) as f32 / 2.0 - self.camera.rect.y * self.camera.zoom as f32;
             let renderbox = background.renderbox.after_position(&PositionComponent::new(left, top)).sdl2();
-            let tex = self.texture_manager.get_texture(background.texture_id).unwrap();
+            let tex = world.texture_manager.get_texture(background.texture_id).unwrap();
             self.canvas.copy(tex, None, renderbox).unwrap();
         }
 
@@ -271,7 +274,7 @@ impl<'a> GraphicsSystem<'a> {
         drawables.iter().for_each(|e| {
             if !e.1.0.contains(&"invisible".to_string()) {
                 let physics = world.get_entity_physics(e.0);
-                self.draw_entity(e.1, physics.1);
+                self.draw_entity(&world.texture_manager, e.1, physics.1);
             }
         });
 
@@ -295,8 +298,10 @@ impl<'a> GraphicsSystem<'a> {
 
         // Draw Dialog If Exists
         if self.dialog.is_some() {
-            if let Some(dialog) = world.current_dialog() {
-                self.render_dialog(dialog);
+            if world.curr_dialog.is_some() {
+                let dialog_name = world.curr_dialog.as_ref().unwrap();
+                let dialog = &world.dialogs[dialog_name];
+                self.render_dialog(&world.texture_manager, dialog);
             }
         }
 
@@ -315,14 +320,14 @@ impl<'a> GraphicsSystem<'a> {
     }
 
     /// Render a dialog window
-    fn render_dialog(&mut self, dialog: &Dialog) {
+    fn render_dialog(&mut self, texture_manager: &TextureManager, dialog: &Dialog) {
         let (screen_width, screen_height) = self.canvas.window().size();
         let left_offset = ((screen_width - self.camera.rect.w) / 2) as i32;
         let top_offset = ((screen_height - self.camera.rect.h) / 2) as i32;
 
         // Draw Box
         let d = self.dialog.as_ref().unwrap();
-        let tex = self.texture_manager.get_texture(d.tex_id).unwrap();
+        let tex = texture_manager.get_texture(d.tex_id).unwrap();
         self.canvas.copy(
             tex,
             None,
@@ -337,7 +342,7 @@ impl<'a> GraphicsSystem<'a> {
         // Draw Text
         let msg = dialog.msg();
         let surface = d.font.render(&msg).blended_wrapped((255, 255, 255), d.textbox.width()).unwrap();
-        let tex = self.texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
+        let tex = texture_manager.texture_creator.create_texture_from_surface(&surface).unwrap();
 
         let TextureQuery { width, height, .. } = tex.query();
 

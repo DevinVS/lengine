@@ -11,11 +11,16 @@ use crate::animation::AnimationComponent;
 use crate::state::ActionComponent;
 use crate::effect::Effect;
 use crate::dialog::Dialog;
+use crate::graphics::TextureManager;
+use crate::parser::parse_world_file;
 
 /// Struct containing all game data and current state
-pub struct World {
-    /// Entity who is controllable and interacts with other objects
-    pub player_id: Option<usize>,
+pub struct World<'a> {
+    /// Texture Manager
+    pub texture_manager: TextureManager<'a>,
+
+    /// Possible world files, Name -> Path
+    pub worlds: HashMap<String, String>,
 
     /// All effects in the game world
     pub effects: Vec<Effect>,
@@ -29,8 +34,8 @@ pub struct World {
     /// Background texture and renderbox
     pub background: Option<GraphicsComponent>,
     pub background_color: Color,
-    // Entity Components
 
+    // Entity Components
     /// Array of sets of all the current active states for an entity
     pub states: Vec<HashSet<String>>,
     /// Array of optional position data for an entity
@@ -45,11 +50,12 @@ pub struct World {
     pub actions: Vec<Option<ActionComponent>>,
 }
 
-impl World {
+impl<'a> World<'a> {
     /// Create a new world
-    pub fn new(background: Option<GraphicsComponent>, color: Color) -> World {
+    pub fn new(texture_manager: TextureManager, worlds: HashMap<String, String>) -> World {
         World {
-            player_id: None,
+            texture_manager,
+            worlds,
             states: Vec::new(),
             positions: Vec::new(),
             physics: Vec::new(),
@@ -59,8 +65,8 @@ impl World {
             effects: Vec::new(),
             dialogs: HashMap::new(),
             curr_dialog: None,
-            background,
-            background_color: color
+            background: None,
+            background_color: Color::RGB(0, 0, 0)
         }
     }
 
@@ -82,14 +88,30 @@ impl World {
         self.states.len()-1
     }
 
+    /// Deload the current world
+    pub fn deload(&mut self) {
+        while self.states.len() > 1 {
+            self.states.pop();
+            self.positions.pop();
+            self.physics.pop();
+            self.graphics.pop();
+            self.animations.pop();
+            self.actions.pop();
+        }
+
+        self.dialogs.clear();
+    }
+
+    /// Load a world from a world file
+    pub fn load(&mut self, name: &str, entrance: &str) {
+        println!("Load: {name} at {entrance}");
+        let path = self.worlds[name].clone();
+        parse_world_file(&path, self, entrance);
+    }
+
     /// Add a new Dialog to display
     pub fn add_dialog(&mut self, name: String, dialog: Dialog) {
         self.dialogs.insert(name, dialog);
-    }
-
-    /// Get the currently displayed dialog
-    pub fn current_dialog(&mut self) -> Option<&mut Dialog> {
-        self.curr_dialog.as_ref().map(|e| self.dialogs.get_mut(e).unwrap())
     }
 
     /// Apply all effects to the objects who lie inside them

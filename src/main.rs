@@ -34,15 +34,14 @@ fn main() {
     canvas.set_draw_color((255, 255, 255));
 
     let texture_creator = canvas.texture_creator();
-    let mut texture_manager = TextureManager::new(&texture_creator);
+    let texture_manager = TextureManager::new(&texture_creator);
 
-    let (mut world, input_config, graphics_config) = parse_game_file("./game.yml", &mut texture_manager);
-
+    let (mut world, input_config, graphics_config) = parse_game_file("./game.yml", texture_manager);
 
     // Create Game Systems
     let mut input_system = InputSystem::new(input_config, controller_subsystem);
     let mut physics_system = PhysicsSystem::new();
-    let mut graphics_system = GraphicsSystem::new(graphics_config, texture_manager, &ttf_context, &mut canvas);
+    let mut graphics_system = GraphicsSystem::new(graphics_config, &ttf_context, &mut canvas);
     let mut animation_system = AnimationSystem::new();
     let mut effects_system = EffectSystem::new();
     let mut state_system = StateSystem::new();
@@ -67,6 +66,18 @@ fn main() {
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
         effects_system.run(&mut world);
+
+        // Check if the player is being moved to another world
+        let player_states = world.states[0].clone();
+        for state in player_states {
+            if state.starts_with("__MOVE_TO__=") {
+                let state = state.replace("__MOVE_TO__=", "");
+                let (file, entrance) = state.split_once("/").unwrap();
+                world.deload();
+                world.load(file, entrance);
+                break;
+            }
+        }
 
         // Sleep
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

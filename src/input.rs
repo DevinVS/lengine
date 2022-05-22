@@ -10,8 +10,7 @@ use sdl2::controller::Axis;
 
 use crate::vector::Vector;
 use crate::world::World;
-use crate::effect::{Effect, EffectSpawner};
-use crate::geometry::Rect;
+use crate::effect::EffectSpawner;
 
 /// user defined key and button mappings to states
 #[derive(Debug)]
@@ -128,85 +127,85 @@ impl InputSystem {
 
             return;
         }
+
         // Player movement
-        if let Some(player) = world.player_id {
-            if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
-                // If the interact key is pressed try to interact with the object that is in front of us
-                let player_rect = physics_state.hitbox
-                    .after_position(&pos)
-                    .after_depth(physics_state.depth);
+        let player = 0;
+        if let (Some(pos), Some(physics_state)) = (world.positions[player].as_mut(), world.physics[player].as_mut()) {
+            // If the interact key is pressed try to interact with the object that is in front of us
+            let player_rect = physics_state.hitbox
+                .after_position(&pos)
+                .after_depth(physics_state.depth);
 
-                for key in self.config.keymap.keys() {
-                    if self.key_state.contains(key) {
-                        let mut effect = self.config.keymap[key].spawn();
+            for key in self.config.keymap.keys() {
+                if self.key_state.contains(key) {
+                    let mut effect = self.config.keymap[key].spawn();
 
-                        effect.rect.x += player_rect.x;
-                        effect.rect.y += player_rect.y;
-                        effect.rect.w += player_rect.w;
-                        effect.rect.h += player_rect.h;
+                    effect.rect.x += player_rect.x;
+                    effect.rect.y += player_rect.y;
+                    effect.rect.w += player_rect.w;
+                    effect.rect.h += player_rect.h;
 
-                        world.effects.push(effect);
-                        self.key_state.remove(key);
-                    }
+                    world.effects.push(effect);
+                    self.key_state.remove(key);
                 }
-
-                for button in self.config.buttonmap.keys() {
-                    if self.button_state.contains(button) {
-                        let mut effect = self.config.buttonmap[button].spawn();
-
-                        effect.rect.x += player_rect.x;
-                        effect.rect.y += player_rect.y;
-                        effect.rect.w += player_rect.w;
-                        effect.rect.h += player_rect.h;
-
-                        world.effects.push(effect);
-                        self.button_state.remove(button);
-                    }
-                }
-
-                // If joystick connected and its values beyond the deadzone use it, otherwise
-                // buttons and keys
-                let max_mag = 100.0;
-
-                let (x, y) = if self.controller.is_some() {
-                    let (x, y) = self.joystick_velocity();
-
-                    if x.abs() < 0.01 && y.abs() < 0.01 {
-                        self.button_velocity()
-                    } else {
-                        (x, y)
-                    }
-                } else {
-                    self.button_velocity()
-                };
-
-                let mut vel = Vector::from_components(x, y);
-
-                if vel.mag > 1.0 {vel.mag=1.0;}
-
-                vel.mag *= max_mag;
-                physics_state.velocity = vel;
-
-                // Set appropriate states for idle and walking
-                if vel.mag != 0.0 {
-                    world.remove_entity_state(player, &"idle".to_string());
-                    world.add_entity_state(player, "walking".into());
-                } else {
-                    world.remove_entity_state(player, &"walking".to_string());
-                    world.add_entity_state(player, "idle".into());
-                }
-
-                // If the player is drawable, make sure to flip it when moving the other way
-                if let (_, Some(graphics)) = world.get_entity_graphics_mut(player) {
-                    if vel.x() > 0.1 {
-                        graphics.flipped = false;
-                    } else if vel.x() < -0.1 {
-                        graphics.flipped = true;
-                    }
-                }
-
-
             }
+
+            for button in self.config.buttonmap.keys() {
+                if self.button_state.contains(button) {
+                    let mut effect = self.config.buttonmap[button].spawn();
+
+                    effect.rect.x += player_rect.x;
+                    effect.rect.y += player_rect.y;
+                    effect.rect.w += player_rect.w;
+                    effect.rect.h += player_rect.h;
+
+                    world.effects.push(effect);
+                    self.button_state.remove(button);
+                }
+            }
+
+            // If joystick connected and its values beyond the deadzone use it, otherwise
+            // buttons and keys
+            let max_mag = 100.0;
+
+            let (x, y) = if self.controller.is_some() {
+                let (x, y) = self.joystick_velocity();
+
+                if x.abs() < 0.01 && y.abs() < 0.01 {
+                    self.button_velocity()
+                } else {
+                    (x, y)
+                }
+            } else {
+                self.button_velocity()
+            };
+
+            let mut vel = Vector::from_components(x, y);
+
+            if vel.mag > 1.0 {vel.mag=1.0;}
+
+            vel.mag *= max_mag;
+            physics_state.velocity = vel;
+
+            // Set appropriate states for idle and walking
+            if vel.mag != 0.0 {
+                world.remove_entity_state(player, &"idle".to_string());
+                world.add_entity_state(player, "walking".into());
+            } else {
+                world.remove_entity_state(player, &"walking".to_string());
+                world.add_entity_state(player, "idle".into());
+            }
+
+            // If the player is drawable, make sure to flip it when moving the other way
+            if let (_, Some(graphics)) = world.get_entity_graphics_mut(player) {
+                if vel.x() > 0.1 {
+                    graphics.flipped = false;
+                } else if vel.x() < -0.1 {
+                    graphics.flipped = true;
+                }
+            }
+
+
         }
     }
     /// Move the player using the joysticks

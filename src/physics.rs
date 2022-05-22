@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use crate::geometry::Rect;
 
 /// Physics information for a single entity
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PhysicsComponent {
     /// An Entities actual physical depth
     pub depth: u32,

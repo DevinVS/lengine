@@ -113,7 +113,7 @@ use std::io::Read;
 use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
 
-use crate::effect::EffectSpawner;
+use crate::effect::{EffectSpawner, Effect};
 use crate::input::InputConfig;
 use crate::world::World;
 use crate::geometry::{Rect, PositionComponent};
@@ -121,7 +121,7 @@ use crate::physics::PhysicsComponent;
 use crate::graphics::{GraphicsComponent, GraphicsConfig, TextureManager, Camera};
 use crate::animation::{AnimationComponent, Animation};
 use crate::state::{ActionComponent, Sequence};
-use crate::actions::{Action, AddState, RemoveState, ShowDialog, AddEffect, ExitGame};
+use crate::actions::{Action, AddState, RemoveState, ShowDialog, AddEffect, ExitGame, Goto};
 use crate::dialog::Dialog;
 
 
@@ -292,6 +292,10 @@ fn parse_action(yaml: &Yaml) -> Option<Box<dyn Action>> {
         Some("exit_game") => {
             Some(Box::new(ExitGame {}) as Box<dyn Action>)
         }
+        Some("goto") => {
+            parse_string(&yaml["location"])
+                .map(|s| Box::new(Goto { location: s }) as Box<dyn Action>)
+        }
         _ => None
     }
 }
@@ -364,8 +368,7 @@ fn parse_entity(yaml: &Yaml, texture_manager: &mut TextureManager) -> (
     Option<GraphicsComponent>,
     Option<AnimationComponent>,
     Option<ActionComponent>,
-    Option<String>,
-    bool
+    Option<String>
 ) {
     let position = parse_position_component(&yaml["position"]);
     let physics = parse_physics_component(&yaml["physics"]);
@@ -374,9 +377,8 @@ fn parse_entity(yaml: &Yaml, texture_manager: &mut TextureManager) -> (
     let actions = parse_actions_component(&yaml["events"]);
 
     let default_state = parse_string(&yaml["state"]);
-    let is_player = parse_bool_or(&yaml["player"], false);
 
-    (position, physics, graphics, animation, actions, default_state, is_player)
+    (position, physics, graphics, animation, actions, default_state)
 }
 
 /// Parse yaml into a position component
@@ -471,6 +473,18 @@ fn parse_effect(yaml: &Yaml) -> EffectSpawner {
     EffectSpawner::new(added, removed, rect, ttl)
 }
 
+/// Parse yaml into exit
+fn parse_exit(yaml: &Yaml) -> Effect {
+    let location = yaml["to"].as_str().unwrap();
+
+    Effect::new(
+        vec![format!("__MOVE_TO__={}", location)],
+        vec![],
+        parse_world_rect(yaml).unwrap(),
+        None
+    )
+}
+
 /// Parse yaml into input
 fn parse_input(yaml: &Yaml) -> Option<(Option<String>, Option<String>, EffectSpawner)> {
     let effect = parse_effect(yaml);
@@ -505,10 +519,11 @@ fn parse_input_config(yaml: &Yaml) -> InputConfig {
 }
 
 /// Parse yaml into graphics config
-fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
+fn parse_graphics_config(yaml: &Yaml, texture_manager: &mut TextureManager) -> GraphicsConfig {
     let debug = parse_bool_or(&yaml["debug"], false);
 
     let dialog_tex_path = parse_string(&yaml["dialog"]["path"]);
+    let dialog_tex_id = dialog_tex_path.map(|path| texture_manager.load_texture(&path));
     let dialog_font_path = parse_string(&yaml["dialog"]["font"]);
     let dialog_font_size = parse_u32(&yaml["dialog"]["fontsize"]).map(|u| u as u16);
     let dialog_renderbox = parse_sdl2_rect(&yaml["dialog"]["renderbox"]);
@@ -526,9 +541,10 @@ fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
         Rect::new(x, y, w, h)
     };
 
+
     GraphicsConfig {
         debug,
-        dialog_tex_path,
+        dialog_tex_id,
         dialog_font_path,
         dialog_font_size,
         dialog_renderbox,
@@ -541,8 +557,36 @@ fn parse_graphics_config(yaml: &Yaml) -> GraphicsConfig {
     }
 }
 
+/// Parse yaml into entrances
+fn parse_entrances(yaml: &Yaml) -> HashMap<String, PositionComponent> {
+    let mut entrances = HashMap::new();
+
+    for val in yaml.as_vec().unwrap() {
+        let name = val["name"].as_str().unwrap().to_string();
+        let comp = parse_position_component(val).unwrap();
+
+        entrances.insert(name, comp);
+    }
+
+    entrances
+}
+
+fn parse_game_worlds(yaml: &Yaml) -> HashMap<String, String> {
+    let mut worlds = HashMap::new();
+
+    for val in yaml.as_vec().unwrap() {
+        let h = val.as_hash().unwrap();
+        let name = h.keys().nth(0).unwrap();
+        let val = h[name].as_str().unwrap().to_string();
+
+        worlds.insert(name.as_str().unwrap().to_string(), val);
+    }
+
+    worlds
+}
+
 /// Parse Game File
-pub fn parse_game_file(path: &str, texture_manager: &mut TextureManager) -> (World, InputConfig, GraphicsConfig) {
+pub fn parse_game_file<'a>(path: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig) {
     let mut file = File::open(path).unwrap();
     let file_size = file.metadata().unwrap().len();
     let mut contents = String::with_capacity(file_size as usize);
@@ -551,13 +595,49 @@ pub fn parse_game_file(path: &str, texture_manager: &mut TextureManager) -> (Wor
     parse_game_string(&contents, texture_manager)
 }
 
+/// Parse World File
+pub fn parse_world_file(path: &str, world: &mut World, entrance: &str) {
+    println!("Open {path}");
+    let mut file = File::open(path).unwrap();
+    let file_size = file.metadata().unwrap().len();
+    let mut contents = String::with_capacity(file_size as usize);
+    file.read_to_string(&mut contents).unwrap();
+
+    parse_world_string(&contents, world, entrance)
+}
+
 /// Parse Game String
-pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -> (World, InputConfig, GraphicsConfig) {
+pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig) {
+    let docs = YamlLoader::load_from_str(contents).unwrap();
+    let doc = &docs[0];
+
+    let worlds = parse_game_worlds(&doc["worlds"]);
+    let mut world = World::new(texture_manager, worlds);
+
+    // Parse the System Configs
+    let input_config = parse_input_config(&doc["inputs"]);
+    let graphics_config = parse_graphics_config(&doc["graphics"], &mut world.texture_manager);
+
+    // Parse the player components
+    let comps = parse_entity(&doc["player"], &mut world.texture_manager);
+    world.add_entity(comps.0, comps.1, comps.2, comps.3, comps.4);
+
+    // Load Entry Point
+    let entry = doc["entry"].as_str().unwrap();
+    let (world_name, entrance) = entry.split_once("/").unwrap();
+
+    world.load(world_name, entrance);
+
+    (world, input_config, graphics_config)
+}
+
+/// Parse World String
+pub fn parse_world_string(contents: &str, world: &mut World, entrance: &str) {
     let docs = YamlLoader::load_from_str(contents).unwrap();
     let doc = &docs[0];
 
     // World
-    let background = parse_graphics_component(&doc["background"], texture_manager);
+    let background = parse_graphics_component(&doc["background"], &mut world.texture_manager);
 
     let b_red = parse_u32_or(&doc["background"]["color"]["r"], 255);
     let b_blue = parse_u32_or(&doc["background"]["color"]["g"], 255);
@@ -565,15 +645,12 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
 
     let background_color = Color::RGB(b_red as u8, b_blue as u8, b_green as u8);
 
-    let mut world = World::new(background, background_color);
-
-    // Parse the System Configs
-    let input_config = parse_input_config(&doc["inputs"]);
-    let graphics_config = parse_graphics_config(&doc["graphics"]);
+    world.background = background;
+    world.background_color = background_color;
 
     // Parse the Entities
-    for entity in doc["entities"].as_vec().unwrap() {
-        let comps = parse_entity(entity, texture_manager);
+    for entity in doc["entities"].as_vec().unwrap_or(&Vec::new()) {
+        let comps = parse_entity(entity, &mut world.texture_manager);
         let id = world.add_entity(
             comps.0,
             comps.1,
@@ -585,10 +662,20 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
         if let Some(state) = comps.5 {
             world.add_entity_state(id, state);
         }
+    }
 
-        if comps.6 {
-            world.player_id = Some(id);
-        }
+    // Parse entrances
+    let entrances = parse_entrances(&doc["entrances"]);
+
+    // If entrance is in entrances, set players position component
+    if let Some(comp) = entrances.get(entrance) {
+        world.positions[0] = Some(comp.clone());
+    }
+
+    // Parse exits
+    for exit in doc["exits"].as_vec().unwrap_or(&Vec::new()) {
+        let exit = parse_exit(exit);
+        world.effects.push(exit);
     }
 
     // Parse Dialogs
@@ -596,6 +683,4 @@ pub fn parse_game_string(contents: &str, texture_manager: &mut TextureManager) -
         .iter()
         .filter_map(|y| parse_dialog(y))
         .for_each(|(name, dialog)| world.add_dialog(name, dialog));
-
-    (world, input_config, graphics_config)
 }

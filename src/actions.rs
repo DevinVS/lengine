@@ -16,7 +16,7 @@ pub trait Actionable {
 pub trait Action: Actionable + Debug {}
 
 /// An action which adds a state to the entity who spawned it
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AddState {
     /// State to add
     pub state: String
@@ -31,7 +31,7 @@ impl Actionable for AddState {
 impl Action for AddState {}
 
 /// An action which remove a state from the entity who spawned it
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoveState {
     /// State to remove
     pub state: String
@@ -46,7 +46,7 @@ impl Actionable for RemoveState {
 impl Action for RemoveState {}
 
 /// An action which adds an effect to the world
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AddEffect {
     /// Effect to add
     pub effect: EffectSpawner
@@ -61,7 +61,7 @@ impl Actionable for AddEffect {
 impl Action for AddEffect {}
 
 /// An action which shows a dialog box
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShowDialog {
     /// Name of dialog to display
     pub dialog: String
@@ -75,7 +75,7 @@ impl Actionable for ShowDialog {
 
 impl Action for ShowDialog {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExitGame;
 
 impl Actionable for ExitGame {
@@ -85,3 +85,15 @@ impl Actionable for ExitGame {
 }
 
 impl Action for ExitGame {}
+
+#[derive(Debug)]
+pub struct Goto {
+    pub location: String
+}
+
+impl Actionable for Goto {
+    fn tick(&mut self, states: &mut HashSet<String>, _: &mut Vec<Effect>, _: &mut Option<String>) {
+        states.insert(format!("__MOVE_TO__={}", self.location));
+    }
+}
+impl Action for Goto {}

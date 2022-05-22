@@ -1,0 +1,45 @@
+dialogs:
+  - name: "locked_door"
+    messages:
+      - "The door is locked, you must have left a key around here somewhere..."
+  - name: "painting"
+    messages:
+      - "A painting of a sunset. It reminds you of somewhere."
+  - name: "obtain_key"
+    messages:
+      - "You picked up a key."
+  - name: "unlocked_door"
+    messages:
+      - "The door unlocks with a satisfying click and you finish the game demo..."
+    after:
+      - type: "exit_game"
+  - name: "humble_sign"
+    messages:
+      - "I am but a humble sign, here to guide you on you journey."
+      - "Press 'e' to interact with objects around the room, but if you see this you probably already know this"
+      - "You can also press 'f'."
+      - "Please don't."
+  - name: "burnt_sign"
+    messages:
+      - "It's just a pile of ash."
+      - "You Monster"
+background:
+  color:
+    r: 255
+    g: 255
+    b: 255
+  path: "./assets/room.png"
+  renderbox:
+    w: 800
+    h: 800
+entrances:
+  - name: "door"
+    x: 0
+    y: 0
+exits:
+  - to: "lake/house"
+    x: 40
+    y: 40
+    w: 20
+    h: 20
+entities:
