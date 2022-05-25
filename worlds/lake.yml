@@ -1,7 +1,6 @@
+w: 1503
+h: 863
 dialogs:
-  - name: "locked_door"
-    messages:
-      - "The door is locked, you must have left a key around here somewhere..."
 background:
   color:
     r: 0
@@ -13,7 +12,12 @@ background:
     h: 4320
 entrances:
   - name: "house"
-    x: 100
-    y: 100
+    x: 290
+    y: 212
 exits:
+  - to: "living_room/door"
+    x: 288
+    y: 219
+    w: 16
+    h: 6
 entities:
