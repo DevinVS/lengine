@@ -198,7 +198,7 @@ impl<'a> GraphicsSystem<'a> {
     }
 
     /// Make the Camera follow a given rectangle
-    fn follow(&mut self, rect: Rect) {
+    fn follow(&mut self, rect: Rect, world_width: u32, world_height: u32) {
         // Bounding box
         let box_x_offset = self.camera.player_box.x / self.camera.zoom as f32;
         let box_y_offset = self.camera.player_box.y / self.camera.zoom as f32;
@@ -230,6 +230,12 @@ impl<'a> GraphicsSystem<'a> {
         if rect_bottom > box_bottom {
             self.camera.rect.y = rect_bottom - box_height - box_y_offset;
         }
+
+        // Clamp camera to world bounds
+        self.camera.rect.x = self.camera.rect.x.max(0.0);
+        self.camera.rect.y = self.camera.rect.y.max(0.0);
+        self.camera.rect.x = (self.camera.rect.x + self.camera.rect.w as f32 / self.camera.zoom as f32).min(world_width as f32) - (self.camera.rect.w as f32 / self.camera.zoom as f32);
+        self.camera.rect.y = (self.camera.rect.y + self.camera.rect.h as f32 / self.camera.zoom as f32).min(world_height as f32) - (self.camera.rect.h as f32 / self.camera.zoom as f32);
     }
 
     /// Draw an entity based on its position and texture
@@ -256,7 +262,7 @@ impl<'a> GraphicsSystem<'a> {
 
         let player_id = 0;
         if let (Some(pos), Some(phys)) = world.get_entity_physics(player_id) {
-            self.follow(phys.hitbox.after_position(pos));
+            self.follow(phys.hitbox.after_position(pos), world.world_width, world.world_height);
         }
 
         // Draw background if exists

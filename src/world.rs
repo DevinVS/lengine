@@ -35,6 +35,10 @@ pub struct World<'a> {
     pub background: Option<GraphicsComponent>,
     pub background_color: Color,
 
+    /// world bounds
+    pub world_width: u32,
+    pub world_height: u32,
+
     // Entity Components
     /// Array of sets of all the current active states for an entity
     pub states: Vec<HashSet<String>>,
@@ -66,7 +70,9 @@ impl<'a> World<'a> {
             dialogs: HashMap::new(),
             curr_dialog: None,
             background: None,
-            background_color: Color::RGB(0, 0, 0)
+            background_color: Color::RGB(0, 0, 0),
+            world_width: 0,
+            world_height: 0
         }
     }
 

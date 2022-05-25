@@ -1,5 +1,4 @@
 graphics:
-  debug: true
   camera:
     rect:
       x: 0.0
