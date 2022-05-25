@@ -105,7 +105,6 @@ impl<'a> World<'a> {
 
     /// Load a world from a world file
     pub fn load(&mut self, name: &str, entrance: &str) {
-        println!("Load: {name} at {entrance}");
         let path = self.worlds[name].clone();
         parse_world_file(&path, self, entrance);
     }
@@ -130,16 +129,13 @@ impl<'a> World<'a> {
 
                     if footprint.has_intersection(effect_rect) {
                         for state in add {
-                            println!("add {}", state);
                             self.states[i].insert(state.clone());
                         }
 
                         for state in remove {
-                            println!("remove {}", state);
                             self.states[i].remove(state);
                         }
 
-                        println!("{:?}", self.states[i]);
                     }
                 }
             }

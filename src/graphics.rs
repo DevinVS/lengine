@@ -53,7 +53,6 @@ pub struct Camera {
 impl Camera {
     /// Find the new rectangle with respect to the view of the camera
     fn view(&self, rect: Rect, (width, height): (u32, u32)) -> Rect {
-        println!("({width}, {height})");
         let screen_x = (width - self.rect.w) / 2;
         let screen_y = (height - self.rect.h) / 2;
 
@@ -117,7 +116,6 @@ impl<'a> TextureManager<'a> {
         let tex = self.texture_creator.load_texture(path).unwrap();
         self.textures.insert(id, tex);
         self.texture_paths.insert(path.to_string(), id);
-        println!("Load Texture: {path}");
 
         id
     }
@@ -264,7 +262,6 @@ impl<'a> GraphicsSystem<'a> {
         // Draw background if exists
         if let Some(background) = world.background.as_ref() {
             let (width, height) = self.canvas.output_size().unwrap();
-            println!("({width}, {height})");
             let left = (width as f32 - self.camera.rect.w as f32) / 2.0 - self.camera.rect.x * self.camera.zoom as f32;
             let top = (height - self.camera.rect.h) as f32 / 2.0 - self.camera.rect.y * self.camera.zoom as f32;
             let renderbox = background.renderbox.after_position(&PositionComponent::new(left, top)).sdl2();

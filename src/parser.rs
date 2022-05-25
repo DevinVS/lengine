@@ -597,7 +597,6 @@ pub fn parse_game_file<'a>(path: &str, texture_manager: TextureManager<'a>) -> (
 
 /// Parse World File
 pub fn parse_world_file(path: &str, world: &mut World, entrance: &str) {
-    println!("Open {path}");
     let mut file = File::open(path).unwrap();
     let file_size = file.metadata().unwrap().len();
     let mut contents = String::with_capacity(file_size as usize);
