@@ -597,7 +597,6 @@ pub fn parse_game_file<'a>(path: &str, texture_manager: TextureManager<'a>) -> (
 
 /// Parse World File
 pub fn parse_world_file(path: &str, world: &mut World, entrance: &str) {
-    println!("Open {path}");
     let mut file = File::open(path).unwrap();
     let file_size = file.metadata().unwrap().len();
     let mut contents = String::with_capacity(file_size as usize);
@@ -638,6 +637,8 @@ pub fn parse_world_string(contents: &str, world: &mut World, entrance: &str) {
 
     // World
     let background = parse_graphics_component(&doc["background"], &mut world.texture_manager);
+    let width = parse_u32_or(&doc["w"], 0);
+    let height = parse_u32_or(&doc["h"], 0);
 
     let b_red = parse_u32_or(&doc["background"]["color"]["r"], 255);
     let b_blue = parse_u32_or(&doc["background"]["color"]["g"], 255);
@@ -647,6 +648,8 @@ pub fn parse_world_string(contents: &str, world: &mut World, entrance: &str) {
 
     world.background = background;
     world.background_color = background_color;
+    world.world_width = width;
+    world.world_height = height;
 
     // Parse the Entities
     for entity in doc["entities"].as_vec().unwrap_or(&Vec::new()) {

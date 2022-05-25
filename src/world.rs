@@ -35,6 +35,10 @@ pub struct World<'a> {
     pub background: Option<GraphicsComponent>,
     pub background_color: Color,
 
+    /// world bounds
+    pub world_width: u32,
+    pub world_height: u32,
+
     // Entity Components
     /// Array of sets of all the current active states for an entity
     pub states: Vec<HashSet<String>>,
@@ -66,7 +70,9 @@ impl<'a> World<'a> {
             dialogs: HashMap::new(),
             curr_dialog: None,
             background: None,
-            background_color: Color::RGB(0, 0, 0)
+            background_color: Color::RGB(0, 0, 0),
+            world_width: 0,
+            world_height: 0
         }
     }
 
@@ -105,7 +111,6 @@ impl<'a> World<'a> {
 
     /// Load a world from a world file
     pub fn load(&mut self, name: &str, entrance: &str) {
-        println!("Load: {name} at {entrance}");
         let path = self.worlds[name].clone();
         parse_world_file(&path, self, entrance);
     }
@@ -130,16 +135,13 @@ impl<'a> World<'a> {
 
                     if footprint.has_intersection(effect_rect) {
                         for state in add {
-                            println!("add {}", state);
                             self.states[i].insert(state.clone());
                         }
 
                         for state in remove {
-                            println!("remove {}", state);
                             self.states[i].remove(state);
                         }
 
-                        println!("{:?}", self.states[i]);
                     }
                 }
             }
