@@ -61,5 +61,22 @@ entities:
       hitbox:
         w: 63
         h: 7
-
-
+  # Box
+  - position:
+      x: 50
+      y: 50
+    physics:
+      hitbox:
+        w: 16
+        h: 16
+      depth: 8
+    graphics:
+      path: "./assets/box.png"
+      renderbox:
+        w: 16
+        h: 16
+      srcbox:
+        x: 0
+        y: 0
+        w: 16
+        h: 16

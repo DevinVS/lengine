@@ -10,3 +10,4 @@ pub mod state;
 pub mod actions;
 pub mod dialog;
 pub mod parser;
+pub mod ai;

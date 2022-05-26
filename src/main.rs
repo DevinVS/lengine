@@ -38,7 +38,7 @@ fn main() {
     let texture_creator = canvas.texture_creator();
     let texture_manager = TextureManager::new(&texture_creator);
 
-    let (mut world, input_config, graphics_config) = parse_game_file("./game.yml", texture_manager);
+    let (mut world, input_config, graphics_config, mut ai_system) = parse_game_file("./game.yml", texture_manager);
 
     // Create Game Systems
     let mut input_system = InputSystem::new(input_config, controller_subsystem);
@@ -71,6 +71,7 @@ fn main() {
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
         effects_system.run(&mut world);
+        ai_system.run(&mut world);
 
         // Check if the player is being moved to another world
         let player_states = world.states[0].clone();

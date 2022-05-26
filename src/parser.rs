@@ -113,6 +113,7 @@ use std::io::Read;
 use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
 
+use crate::ai::AISystem;
 use crate::effect::{EffectSpawner, Effect};
 use crate::input::InputConfig;
 use crate::world::World;
@@ -586,7 +587,7 @@ fn parse_game_worlds(yaml: &Yaml) -> HashMap<String, String> {
 }
 
 /// Parse Game File
-pub fn parse_game_file<'a>(path: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig) {
+pub fn parse_game_file<'a>(path: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig, AISystem) {
     let mut file = File::open(path).unwrap();
     let file_size = file.metadata().unwrap().len();
     let mut contents = String::with_capacity(file_size as usize);
@@ -606,7 +607,7 @@ pub fn parse_world_file(path: &str, world: &mut World, entrance: &str) {
 }
 
 /// Parse Game String
-pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig) {
+pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>) -> (World<'a>, InputConfig, GraphicsConfig, AISystem) {
     let docs = YamlLoader::load_from_str(contents).unwrap();
     let doc = &docs[0];
 
@@ -619,7 +620,11 @@ pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>
 
     // Parse the player components
     let comps = parse_entity(&doc["player"], &mut world.texture_manager);
-    world.add_entity(comps.0, comps.1, comps.2, comps.3, comps.4);
+    world.add_global_entity(comps.0, comps.1, comps.2, comps.3, comps.4);
+
+    // Parse the monster components
+    let mcomps = parse_entity(&doc["monster"], &mut world.texture_manager);
+    world.add_global_entity(mcomps.0, mcomps.1, mcomps.2, mcomps.3, mcomps.4);
 
     // Load Entry Point
     let entry = doc["entry"].as_str().unwrap();
@@ -627,7 +632,22 @@ pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>
 
     world.load(world_name, entrance);
 
-    (world, input_config, graphics_config)
+    let mut path = Vec::new();
+
+    for item in doc["monster"]["ai"]["path"].as_vec().unwrap() {
+        path.push((parse_f32(&item["x"]).unwrap(), parse_f32(&item["y"]).unwrap(), parse_f32(&item["t"]).unwrap()));
+    }
+
+    let aggro_distance = parse_f32_or(&doc["monster"]["ai"]["aggro_distance"], 1000.0);
+    let lost_delay = parse_f32_or(&doc["monster"]["ai"]["lost_delay"], 5.0);
+
+    let ai_system = AISystem::new(
+        path,
+        aggro_distance,
+        lost_delay
+    );
+
+    (world, input_config, graphics_config, ai_system)
 }
 
 /// Parse World String

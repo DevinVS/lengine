@@ -1,3 +1,5 @@
+use sdl2::rect::Point;
+
 use crate::vector::Vector;
 
 /// Rectangle which exists inside the game world
@@ -43,6 +45,13 @@ impl Rect {
         return true;
     }
 
+    pub fn intersects_line(&mut self, x0: f32, y0: f32, x1: f32, y1: f32) -> bool {
+        self.sdl2().intersect_line(
+            Point::new(x0 as i32, y0 as i32),
+            Point::new(x1 as i32, y1 as i32),
+        ).is_some()
+    }
+
     /// Apply a vector to this rectangle
     pub fn apply_vector(&mut self, v: Vector) {
         self.x += v.x();
@@ -77,8 +86,8 @@ impl std::ops::Add<Rect> for Rect {
 /// Component for a position in the game world
 #[derive(Debug, Clone)]
 pub struct PositionComponent {
-    x: f32,
-    y: f32
+    pub x: f32,
+    pub y: f32
 }
 
 impl PositionComponent {

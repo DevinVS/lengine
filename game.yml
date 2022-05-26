@@ -63,3 +63,30 @@ player:
         h: 17
       frame_width: 18
       frame_count: 12
+monster:
+  position:
+    x: 100
+    y: 100
+  physics:
+    hitbox:
+      w: 15
+      h: 34
+    depth: 4
+  graphics:
+    path: "./assets/monster.png"
+    renderbox:
+      w: 15
+      h: 34
+    srcbox:
+      x: 0
+      y: 0
+      w: 15
+      h: 34
+  ai:
+    path:
+      - x: 30.0
+        y: 100.0
+        t: 5.0
+      - x: 100.0
+        y: 100.0
+        t: 3.0

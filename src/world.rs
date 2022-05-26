@@ -39,6 +39,9 @@ pub struct World<'a> {
     pub world_width: u32,
     pub world_height: u32,
 
+    /// Number of global entities
+    global: usize,
+
     // Entity Components
     /// Array of sets of all the current active states for an entity
     pub states: Vec<HashSet<String>>,
@@ -72,8 +75,20 @@ impl<'a> World<'a> {
             background: None,
             background_color: Color::RGB(0, 0, 0),
             world_width: 0,
-            world_height: 0
+            world_height: 0,
+            global: 0
         }
+    }
+
+    pub fn add_global_entity(&mut self,
+        position: Option<PositionComponent>,
+        physics: Option<PhysicsComponent>,
+        graphics: Option<GraphicsComponent>,
+        animation: Option<AnimationComponent>,
+        actions: Option<ActionComponent>
+        ) -> usize {
+        self.global += 1;
+        self.add_entity(position, physics, graphics, animation, actions)
     }
 
     /// Add an entity to the entity manager
@@ -96,7 +111,7 @@ impl<'a> World<'a> {
 
     /// Deload the current world
     pub fn deload(&mut self) {
-        while self.states.len() > 1 {
+        while self.states.len() > self.global {
             self.states.pop();
             self.positions.pop();
             self.physics.pop();
