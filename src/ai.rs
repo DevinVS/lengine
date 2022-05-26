@@ -71,7 +71,6 @@ impl AISystem {
                 }
 
                 self.goto(world, dest_x, dest_y, 60.0);
-                self.last_pathfind = Instant::now();
             }
             MonsterState::Aggro => {
                 // A* Pathfinding to the player
@@ -149,8 +148,10 @@ impl AISystem {
 
     fn dist(&mut self, world: &mut World, x: f32, y: f32) -> f32 {
         let (curr_x, curr_y) = {
-            let pos = world.positions[MID].as_ref().unwrap();
-            (pos.x, pos.y)
+            let rect = world.physics[MID].as_ref().unwrap().hitbox
+                .after_position(world.positions[MID].as_ref().unwrap())
+                .after_depth(world.physics[MID].as_ref().unwrap().depth);
+            (rect.x, rect.y)
         };
 
         ((curr_y-y).powi(2) + (curr_x-x).powi(2)).sqrt()
