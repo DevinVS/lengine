@@ -138,6 +138,8 @@ impl AISystem {
         world.physics[MID].as_mut().unwrap().velocity.dir = angle;
         world.physics[MID].as_mut().unwrap().velocity.mag = mag;
 
+        world.states[MID].insert("walking".into());
+
         if world.physics[MID].as_mut().unwrap().velocity.x() > 0.1 {
             world.graphics[MID].as_mut().unwrap().flipped = false;
         } else {
@@ -156,6 +158,7 @@ impl AISystem {
 
     fn stop(&mut self, world: &mut World) {
         world.physics[MID].as_mut().unwrap().velocity.mag = 0.0;
+        world.states[MID].remove("walking");
     }
 }
 
