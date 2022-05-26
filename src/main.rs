@@ -23,10 +23,12 @@ fn main() {
     let controller_subsystem = sdl2_context.game_controller().unwrap();
 
     // Create graphics objects such as window, canvas, and texture manager
-    let window = video_subsystem.window("title", 1000, 800)
+    let mut window = video_subsystem.window("title", 1000, 800)
         .resizable()
         .build()
         .unwrap();
+
+    window.set_minimum_size(800, 600).unwrap();
 
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let mut event_pump = sdl2_context.event_pump().unwrap();

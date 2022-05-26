@@ -166,7 +166,7 @@ impl InputSystem {
 
             // If joystick connected and its values beyond the deadzone use it, otherwise
             // buttons and keys
-            let max_mag = 100.0;
+            let max_mag = 80.0;
 
             let (x, y) = if self.controller.is_some() {
                 let (x, y) = self.joystick_velocity();

@@ -21,3 +21,45 @@ exits:
     w: 21
     h: 4
 entities:
+  # Top Wall
+  - position:
+      x: 0
+      y: 0
+    physics:
+      hitbox:
+        w: 159
+        h: 33
+  # Left Wall
+  - position:
+      x: 0
+      y: 0
+    physics:
+      hitbox:
+        w: 9
+        h: 159
+  # Right Wall
+  - position:
+      x: 150
+      y: 0
+    physics:
+      hitbox:
+        w: 10
+        h: 159
+  # Bottom Left Wall
+  - position:
+      x: 0
+      y: 153
+    physics:
+      hitbox:
+        w: 76
+        h: 7
+  # Bottom Right Wall
+  - position:
+      x: 97
+      y: 153
+    physics:
+      hitbox:
+        w: 63
+        h: 7
+
+

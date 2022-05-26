@@ -5,8 +5,8 @@ background:
   color:
     r: 0
     g: 0
-    b: 255
-  path: "./assets/lake.png"
+    b: 0
+  path: "./assets/lakespooky.png"
   renderbox:
     w: 7520
     h: 4320
@@ -21,3 +21,19 @@ exits:
     w: 16
     h: 6
 entities:
+  # House Left Front
+  - position:
+      x: 224
+      y: 192
+    physics:
+      hitbox:
+        w: 64
+        h: 44
+  # House Right Front
+  - position:
+      x: 304
+      y: 192
+    physics:
+      hitbox:
+        w: 64
+        h: 44
