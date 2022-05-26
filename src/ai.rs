@@ -1,6 +1,8 @@
+use std::ops::Mul;
 use std::time::Instant;
 use std::collections::HashSet;
 
+use crate::pathfinding;
 use crate::world::World;
 use crate::physics::PhysicsComponent;
 use crate::geometry::PositionComponent;
@@ -22,7 +24,8 @@ pub struct AISystem {
     next_idle: usize,
     last_idle_time: Instant,
     aggro_distance: f32,
-    lost_delay: f32
+    lost_delay: f32,
+    last_pathfind: Instant
 }
 
 
@@ -35,7 +38,8 @@ impl AISystem {
             next_idle: 0,
             last_idle_time: Instant::now(),
             aggro_distance,
-            lost_delay
+            lost_delay,
+            last_pathfind: Instant::now()
         }
     }
 
@@ -66,16 +70,21 @@ impl AISystem {
                     return;
                 }
 
-                self.goto(world, dest_x, dest_y);
+                self.goto(world, dest_x, dest_y, 60.0);
+                self.last_pathfind = Instant::now();
             }
             MonsterState::Aggro => {
                 // A* Pathfinding to the player
-                let (x, y) = {
-                    let pos = world.positions[PID].as_ref().unwrap();
-                    (pos.x, pos.y)
-                };
+                    let (x, y) = {
+                        let rect = world.physics[PID].as_ref().unwrap().hitbox
+                            .after_position(world.positions[PID].as_ref().unwrap())
+                            .after_depth(world.physics[PID].as_ref().unwrap().depth);
+                        (rect.x, rect.y)
+                    };
 
-                self.goto(world, x, y);
+                    let speed = 57.0 + 20.0 * self.last_pathfind.elapsed().as_secs_f32().mul(5.0).sin();
+
+                    self.goto(world, x, y, speed);
             }
             MonsterState::Lost => {
                 // Wait, and then return to idle
@@ -115,17 +124,25 @@ impl AISystem {
         true
     }
 
-    fn goto(&mut self, world: &mut World, x: f32, y: f32) {
+    fn goto(&mut self, world: &mut World, x: f32, y: f32, speed: f32) {
         let (curr_x, curr_y) = {
-            let pos = world.positions[MID].as_ref().unwrap();
-            (pos.x, pos.y)
+            let rect = world.physics[MID].as_ref().unwrap().hitbox
+                .after_position(world.positions[MID].as_ref().unwrap())
+                .after_depth(world.physics[MID].as_ref().unwrap().depth);
+            (rect.x, rect.y)
         };
 
         let angle = (y-curr_y).atan2(x-curr_x);
-        let mag = 80.0;
+        let mag = speed;
 
         world.physics[MID].as_mut().unwrap().velocity.dir = angle;
         world.physics[MID].as_mut().unwrap().velocity.mag = mag;
+
+        if world.physics[MID].as_mut().unwrap().velocity.x() > 0.1 {
+            world.graphics[MID].as_mut().unwrap().flipped = false;
+        } else {
+            world.graphics[MID].as_mut().unwrap().flipped = true;
+        }
     }
 
     fn dist(&mut self, world: &mut World, x: f32, y: f32) -> f32 {
