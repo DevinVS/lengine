@@ -110,6 +110,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
+use sdl2::libc::exit;
 use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
 
@@ -620,11 +621,19 @@ pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>
 
     // Parse the player components
     let comps = parse_entity(&doc["player"], &mut world.texture_manager);
-    world.add_global_entity(comps.0, comps.1, comps.2, comps.3, comps.4);
+    let pid = world.add_global_entity(comps.0, comps.1, comps.2, comps.3, comps.4);
+
+    if let Some(state) = comps.5 {
+        world.add_entity_state(pid, state);
+    }
 
     // Parse the monster components
     let mcomps = parse_entity(&doc["monster"], &mut world.texture_manager);
-    world.add_global_entity(mcomps.0, mcomps.1, mcomps.2, mcomps.3, mcomps.4);
+    let mid = world.add_global_entity(mcomps.0, mcomps.1, mcomps.2, mcomps.3, mcomps.4);
+
+    if let Some(state) = mcomps.5 {
+        world.add_entity_state(mid, state);
+    }
 
     // Load Entry Point
     let entry = doc["entry"].as_str().unwrap();
