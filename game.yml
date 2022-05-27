@@ -70,19 +70,19 @@ monster:
     y: 572
   physics:
     hitbox:
-      w: 15
-      h: 34
-    depth: 4
+      w: 24
+      h: 36
+    depth: 3
   graphics:
-    path: "./assets/monster.png"
+    path: "./assets/Sally.png"
     renderbox:
-      w: 15
-      h: 34
+      w: 24
+      h: 36
     srcbox:
-      x: 0
-      y: 0
-      w: 15
-      h: 34
+      x: 10
+      y: 2
+      w: 24
+      h: 36
   ai:
     aggro_distance: 500.0
     path:

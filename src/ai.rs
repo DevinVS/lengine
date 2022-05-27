@@ -67,8 +67,10 @@ impl AISystem {
                 if world.states[MID].contains("aggro") {
                     self.awaiting_teleport = true;
                     self.teleport_location = {
-                        let pos = world.positions[PID].as_ref().unwrap();
-                        (pos.x, pos.y)
+                        let rect = world.physics[PID].as_ref().unwrap().hitbox
+                            .after_position(world.positions[PID].as_ref().unwrap())
+                            .after_depth(world.physics[PID].as_ref().unwrap().depth);
+                        (rect.x, rect.y)
                     };
                     self.teleport_timer = Instant::now();
                     self.monster_world = world.current_world.clone();
@@ -99,11 +101,12 @@ impl AISystem {
         if self.awaiting_teleport && self.teleport_timer.elapsed().as_secs_f32() < 5.0 {
             return;
         } else if self.awaiting_teleport {
-            println!("TELEPORT: {:?}", self.teleport_location);
             self.awaiting_teleport = false;
 
+            let height = world.physics[MID].as_ref().unwrap().hitbox.h;
+
             // Add monster back into the world at the correct location
-            world.positions[MID] = Some(PositionComponent::new(self.teleport_location.0, self.teleport_location.1));
+            world.positions[MID] = Some(PositionComponent::new(self.teleport_location.0, self.teleport_location.1 - height as f32));
         }
 
         // Check if can see player, if so set aggro to true, if aggro, then lost
@@ -141,8 +144,9 @@ impl AISystem {
                 self.goto(world, dest_x, dest_y, 60.0);
             } else if world.current_world != "lake" && self.monster_world != "lake" {
                 // Monster move back to teleport point, then deload
+                let dist = self.dist(world, self.teleport_location.0, self.teleport_location.1);
 
-                if self.dist(world, self.teleport_location.0, self.teleport_location.1) < 2.0 {
+                if dist < 2.0 {
                     world.positions[MID] = None;
                     self.monster_world = "lake".into();
                 } else {
