@@ -71,7 +71,6 @@ fn main() {
         animation_system.run(&mut world);
         graphics_system.run(&mut world);
         effects_system.run(&mut world);
-        ai_system.run(&mut world);
 
         // Check if the player is being moved to another world
         let player_states = world.states[0].clone();
@@ -86,6 +85,8 @@ fn main() {
                 break;
             }
         }
+
+        ai_system.run(&mut world);
 
         // Sleep
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));

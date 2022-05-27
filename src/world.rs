@@ -22,6 +22,9 @@ pub struct World<'a> {
     /// Possible world files, Name -> Path
     pub worlds: HashMap<String, String>,
 
+    /// Current world
+    pub current_world: String,
+
     /// All effects in the game world
     pub effects: Vec<Effect>,
 
@@ -76,7 +79,8 @@ impl<'a> World<'a> {
             background_color: Color::RGB(0, 0, 0),
             world_width: 0,
             world_height: 0,
-            global: 0
+            global: 0,
+            current_world: "".into()
         }
     }
 
@@ -128,6 +132,8 @@ impl<'a> World<'a> {
     pub fn load(&mut self, name: &str, entrance: &str) {
         let path = self.worlds[name].clone();
         parse_world_file(&path, self, entrance);
+        println!("Load: {} {}", name, entrance);
+        self.current_world = name.into();
     }
 
     /// Add a new Dialog to display
