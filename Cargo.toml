@@ -13,6 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 itertools = "*"
 yaml-rust = "0.4"
+image = "*"
 
 [target.'cfg(target_os = "linux")'.dependencies.sdl2]
 version = "0.35"

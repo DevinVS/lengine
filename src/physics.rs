@@ -45,7 +45,8 @@ impl PhysicsSystem {
     /// Handle collisions with other entities and apply relevant velocites
     pub fn run(&mut self, world: &mut World) {
         // Sum all forces and calculate velocities
-        let mut entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
+        let (entities, map) = world.physics_mut();
+        let mut entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = entities.collect();
 
         for i in 0..entities.len() {
             // Apply final velocities
@@ -66,9 +67,31 @@ impl PhysicsSystem {
 
             let mut collides = false;
 
+            // Check map collisions
+            if let Some(map) = map {
+                let x_collision = map_collision(map, after_x);
+                let y_collision = map_collision(map, after_y);
+
+                if x_collision || y_collision {
+                    collides = true;
+                }
+
+                if entities[i].1.2.physical {
+                    if x_collision && y_collision {
+                        delta_vec.mag = 0.0;
+                    } else if x_collision {
+                        delta_vec.mag *= delta_vec.dir.sin();
+                        delta_vec.dir = FRAC_PI_2;
+                    } else if y_collision {
+                        delta_vec.mag *= delta_vec.dir.cos();
+                        delta_vec.dir = 0.0;
+                    }
+                }
+            }
+
             // Check and handle collisions
             for j in 0..entities.len() {
-                // If we are compareing the same rectangle skip
+                // If we are comparing the same rectangle skip
                 if i==j {continue;}
 
                 let other_depth = entities[j].1.2.depth;
@@ -107,4 +130,16 @@ impl PhysicsSystem {
 
         self.last_tick = Instant::now();
     }
+}
+
+fn map_collision(map: &Vec<Vec<bool>>, rect: Rect) -> bool {
+    for x in rect.x as usize..rect.x as usize + rect.w as usize {
+        for y in rect.y as usize..rect.y as usize + rect.h as usize {
+            if map[y][x] {
+                return true;
+            }
+        }
+    }
+
+    false
 }

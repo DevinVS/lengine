@@ -31,8 +31,11 @@ inputs:
     button: "a"
 entry: "living_room/door"
 worlds:
-  - living_room: "./worlds/living_room.yml"
-  - lake: "./worlds/lake.yml"
+  - name: living_room
+    path: "./worlds/living_room.yml"
+  - name: lake
+    path: "./worlds/lake.yml"
+    map: "./assets/collisionmap.png"
 player:
   physics:
     hitbox:

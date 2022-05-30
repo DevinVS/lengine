@@ -219,7 +219,7 @@ impl AISystem {
     }
 
     fn player_visible(&mut self, world: &mut World) -> bool {
-        let entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = world.physics_mut().collect();
+        let entities: Vec<(usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> = world.physics_mut().0.collect();
         let m_rect = entities[MID].1.2.hitbox
             .after_position(entities[MID].1.1)
             .after_depth(entities[MID].1.2.depth);

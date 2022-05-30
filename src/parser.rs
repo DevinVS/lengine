@@ -110,9 +110,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-use sdl2::libc::exit;
 use sdl2::pixels::Color;
 use yaml_rust::{Yaml, YamlLoader};
+use image::io::Reader as ImageReader;
+use image::{DynamicImage, GenericImageView};
 
 use crate::ai::AISystem;
 use crate::effect::{EffectSpawner, Effect};
@@ -559,6 +560,32 @@ fn parse_graphics_config(yaml: &Yaml, texture_manager: &mut TextureManager) -> G
     }
 }
 
+/// Parse yaml into collision map
+fn parse_collision_map(yaml: &Yaml) -> Option<Vec<Vec<bool>>> {
+    let image_path = parse_string(yaml);
+
+    if image_path.is_none() {
+        return None;
+    }
+
+    let img = ImageReader::open(image_path.unwrap()).unwrap().decode().unwrap();
+
+    let width = img.width();
+    let height = img.height();
+
+    let mut map = Vec::with_capacity(height as usize);
+
+    for y in 0..height {
+        let mut a = Vec::with_capacity(width as usize);
+        for x in 0..width {
+            a.push(img.get_pixel(x, y).0 == [0, 0, 0, 255]);
+        }
+        map.push(a);
+    }
+
+    Some(map)
+}
+
 /// Parse yaml into entrances
 fn parse_entrances(yaml: &Yaml) -> HashMap<String, PositionComponent> {
     let mut entrances = HashMap::new();
@@ -573,18 +600,19 @@ fn parse_entrances(yaml: &Yaml) -> HashMap<String, PositionComponent> {
     entrances
 }
 
-fn parse_game_worlds(yaml: &Yaml) -> HashMap<String, String> {
+fn parse_game_worlds(yaml: &Yaml) -> (HashMap<String, String>, HashMap<String, Option<Vec<Vec<bool>>>>) {
     let mut worlds = HashMap::new();
+    let mut maps = HashMap::new();
 
     for val in yaml.as_vec().unwrap() {
-        let h = val.as_hash().unwrap();
-        let name = h.keys().nth(0).unwrap();
-        let val = h[name].as_str().unwrap().to_string();
+        let name = parse_string(&val["name"]).unwrap();
+        let path = parse_string(&val["path"]).unwrap();
 
-        worlds.insert(name.as_str().unwrap().to_string(), val);
+        worlds.insert(name.clone(), path);
+        maps.insert(name, parse_collision_map(&val["map"]));
     }
 
-    worlds
+    (worlds, maps)
 }
 
 /// Parse Game File
@@ -612,8 +640,8 @@ pub fn parse_game_string<'a>(contents: &str, texture_manager: TextureManager<'a>
     let docs = YamlLoader::load_from_str(contents).unwrap();
     let doc = &docs[0];
 
-    let worlds = parse_game_worlds(&doc["worlds"]);
-    let mut world = World::new(texture_manager, worlds);
+    let (worlds, maps) = parse_game_worlds(&doc["worlds"]);
+    let mut world = World::new(texture_manager, worlds, maps);
 
     // Parse the System Configs
     let input_config = parse_input_config(&doc["inputs"]);

@@ -42,6 +42,9 @@ pub struct World<'a> {
     pub world_width: u32,
     pub world_height: u32,
 
+    /// World collision maps
+    pub collision_map: HashMap<String, Option<Vec<Vec<bool>>>>,
+
     /// Number of global entities
     global: usize,
 
@@ -62,7 +65,11 @@ pub struct World<'a> {
 
 impl<'a> World<'a> {
     /// Create a new world
-    pub fn new(texture_manager: TextureManager, worlds: HashMap<String, String>) -> World {
+    pub fn new(
+        texture_manager: TextureManager,
+        worlds: HashMap<String, String>,
+        maps: HashMap<String, Option<Vec<Vec<bool>>>>
+    ) -> World {
         World {
             texture_manager,
             worlds,
@@ -80,7 +87,8 @@ impl<'a> World<'a> {
             world_width: 0,
             world_height: 0,
             global: 0,
-            current_world: "".into()
+            current_world: "".into(),
+            collision_map: maps
         }
     }
 
@@ -208,17 +216,17 @@ impl<'a> World<'a> {
     }
 
     /// Iterator of entity physics data
-    pub fn physics(&self) -> impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent, &PhysicsComponent))> {
-        izip!(self.states.iter(), self.positions.iter(), self.physics.iter()).enumerate()
+    pub fn physics(&self) -> (impl Iterator<Item = (usize, (&HashSet<String>, &PositionComponent, &PhysicsComponent))>, Option<&Vec<Vec<bool>>>) {
+        (izip!(self.states.iter(), self.positions.iter(), self.physics.iter()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
-            .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap(), e.1.2.as_ref().unwrap())))
+            .map(|e| (e.0, (e.1.0, e.1.1.as_ref().unwrap(), e.1.2.as_ref().unwrap()))), self.collision_map[&self.current_world].as_ref())
     }
 
     /// Iterator of mutable entity physics data
-    pub fn physics_mut(&mut self) -> impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))> {
-        izip!(self.states.iter_mut(), self.positions.iter_mut(), self.physics.iter_mut()).enumerate()
+    pub fn physics_mut(&mut self) -> (impl Iterator<Item = (usize, (&mut HashSet<String>, &mut PositionComponent, &mut PhysicsComponent))>, Option<&Vec<Vec<bool>>>) {
+        (izip!(self.states.iter_mut(), self.positions.iter_mut(), self.physics.iter_mut()).enumerate()
             .filter(|e| e.1.1.is_some() && e.1.2.is_some())
-            .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap(), e.1.2.as_mut().unwrap())))
+            .map(|e| (e.0, (e.1.0, e.1.1.as_mut().unwrap(), e.1.2.as_mut().unwrap()))), self.collision_map[&self.current_world].as_ref())
     }
 
     /// Iterator of entity graphics data
