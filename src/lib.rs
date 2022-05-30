@@ -11,3 +11,6 @@ pub mod actions;
 pub mod dialog;
 pub mod parser;
 pub mod ai;
+pub mod pathfinding;
+pub mod priority_queue;
+pub mod tree;
