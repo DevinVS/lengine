@@ -1,0 +1,32 @@
+Items:
+	Key to shed
+	Key to boathouse
+	Fishing pole
+	Crowbar
+	Rope
+	Shovel
+	Net
+	Key to house
+Progression:
+	Spawn in front of house
+	Attacked by monster in front of barn
+	Hide in barn
+	Find key to shed in barn (potentially haystack if we want to be basic)
+	Find fishing pole and shovel in shed
+	Fish at dock and find net
+	Dig at x south of boathouse (garden?)
+	Find crowbar
+	Open up boarded-up basement
+	Find rope and boathouse key
+	Go to boathouse
+	If dig up house key at grave before setting trap, unlock true ending?
+	Set trap with rope and net
+	end cutscene, you win
+Cutscenes:
+	Opening cutscene (bright inside house, mother and father at fire place. Child goes for a swim, is told not to go too far. Swims, sinks, wakes up at night in front of house, game begins)
+	Monster cutscene (when approaching barn, monster rises from lake and walks toward character while character pulls on barn door. Barn door gives after 3-4 tries, barely makes it in. Player must hide or cutscene can act as a teaching moment for hiding mechanic)
+	Trap cutscene (after setting up trap, monster approaches from right side and gets caught in net)
+	True ending cutscene (character gets in house, house interior is old and decrepit with no fire and two empty chairs. As character looks in disbelief, sound of monster walking fades in and shadow shows in doorway. End game)
+Additional notes:
+	Cutscenes optional, depends how much work we want to put into this
+
